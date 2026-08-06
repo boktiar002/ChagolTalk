@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 
-namespace ChagolTalk.Models
+namespace ChagolTalk.Models.Identity
 {
     public class ApplicationUser : IdentityUser
     {

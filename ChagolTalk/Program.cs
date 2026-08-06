@@ -1,6 +1,6 @@
 using ChagolTalk.Data;
 using ChagolTalk.Models;
-
+using ChagolTalk.Models.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
