@@ -1,10 +1,10 @@
-using ChagolTalk.Models;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Diagnostics;
 
 namespace ChagolTalk.Controllers
 {
-    public class HomeController : Controller
+    [Authorize]
+    public class DashboardController : Controller
     {
         public IActionResult Index()
         {

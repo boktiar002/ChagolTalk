@@ -1,8 +1,102 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Welcome";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section class="hero">
+
+    <div class="hero-badge">
+
+        🚀 Real-Time Random Chat
+
+    </div>
+
+    <h1 class="hero-title">
+
+        Meet New People.<br>
+
+        Build Real Conversations.
+
+    </h1>
+
+    <p class="hero-description">
+
+        ChagolTalk connects strangers instantly through secure one-on-one conversations.
+        No endless scrolling. No fake followers.
+        Just meaningful chats.
+
+    </p>
+
+    <div class="hero-buttons">
+
+        <a asp-controller="Account"
+           asp-action="Register"
+           class="btn btn-primary btn-lg">
+
+            Create Free Account
+
+        </a>
+
+        <a asp-controller="Account"
+           asp-action="Login"
+           class="btn btn-nav btn-lg">
+
+            Login
+
+        </a>
+
+    </div>
+
+</section>
+
+
+<section class="features">
+
+    <div class="feature-card">
+
+        <div class="feature-icon">
+            ⚡
+        </div>
+
+        <h3>Instant Matching</h3>
+
+        <p>
+
+            Find someone to chat with in seconds.
+
+        </p>
+
+    </div>
+
+    <div class="feature-card">
+
+        <div class="feature-icon">
+            🔒
+        </div>
+
+        <h3>Private</h3>
+
+        <p>
+
+            Conversations disappear forever after they end.
+
+        </p>
+
+    </div>
+
+    <div class="feature-card">
+
+        <div class="feature-icon">
+            🌍
+        </div>
+
+        <h3>Worldwide</h3>
+
+        <p>
+
+            Talk to people from anywhere.
+
+        </p>
+
+    </div>
+
+</section>

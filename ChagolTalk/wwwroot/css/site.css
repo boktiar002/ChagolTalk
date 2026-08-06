@@ -1,31 +1,201 @@
+:root {
+    --bg: #0D1117;
+    --surface: #161B22;
+    --surface2: #1f2630;
+    --border: #30363D;
+    --primary: #4F8CFF;
+    --success: #22C55E;
+    --danger: #EF4444;
+    --text: #F8FAFC;
+    --text2: #9CA3AF;
+    --shadow: 0 12px 40px rgba(0,0,0,.35);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 html {
-  font-size: 14px;
-}
-
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
+    scroll-behavior: smooth;
 }
 
 body {
-  margin-bottom: 60px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter',sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
+.ct-main {
+    flex: 1;
+    width: min(1200px,92%);
+    margin: auto;
+    padding: 60px 0;
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-  text-align: start;
+.ct-navbar {
+    background: rgba(22,27,34,.9);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 999;
+}
+
+.navbar-brand {
+    font-size: 28px;
+    font-weight: 700;
+    color: white !important;
+    letter-spacing: .5px;
+}
+
+.btn {
+    border-radius: 14px;
+    padding: 10px 22px;
+    font-weight: 600;
+    transition: .25s ease;
+}
+
+    .btn:hover {
+        transform: translateY(-2px);
+    }
+
+.btn-primary {
+    background: var(--primary);
+    border: none;
+}
+
+    .btn-primary:hover {
+        background: #669dff;
+    }
+
+.btn-nav {
+    border: 1px solid var(--border);
+    color: white;
+}
+
+    .btn-nav:hover {
+        background: var(--surface2);
+        color: white;
+    }
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+}
+
+.form-control {
+    background: #111827;
+    border: 1px solid var(--border);
+    color: white;
+    border-radius: 14px;
+    padding: 14px;
+}
+
+    .form-control:focus {
+        background: #111827;
+        color: white;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 .15rem rgba(79,140,255,.25);
+    }
+
+    .form-control::placeholder {
+        color: #6b7280;
+    }
+
+.ct-footer {
+    border-top: 1px solid var(--border);
+    padding: 30px;
+    text-align: center;
+    color: var(--text2);
+    margin-top: auto;
+}
+
+a {
+    text-decoration: none;
+}
+
+.text-muted {
+    color: var(--text2) !important;
+}
+/* HERO */
+
+.hero {
+    text-align: center;
+    padding: 90px 0;
+}
+
+.hero-badge {
+    display: inline-block;
+    padding: 8px 18px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    margin-bottom: 30px;
+    background: var(--surface);
+    color: var(--text2);
+}
+
+.hero-title {
+    font-size: 64px;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 30px;
+}
+
+.hero-description {
+    max-width: 760px;
+    margin: auto;
+    font-size: 20px;
+    color: var(--text2);
+    line-height: 1.8;
+    margin-bottom: 45px;
+}
+
+.hero-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+/* FEATURES */
+
+.features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
+    gap: 25px;
+    margin-top: 80px;
+    margin-bottom: 80px;
+}
+
+.feature-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 35px;
+    transition: .3s;
+}
+
+    .feature-card:hover {
+        transform: translateY(-8px);
+    }
+
+.feature-icon {
+    font-size: 42px;
+    margin-bottom: 20px;
+}
+
+.feature-card h3 {
+    margin-bottom: 15px;
+}
+
+.feature-card p {
+    color: var(--text2);
+    line-height: 1.8;
 }

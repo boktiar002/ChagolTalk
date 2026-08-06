@@ -1,10 +1,8 @@
-using ChagolTalk.Models;
-using Microsoft.AspNetCore.Mvc;
-using System.Diagnostics;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace ChagolTalk.Controllers
 {
-    public class HomeController : Controller
+    public class ChatController : Controller
     {
         public IActionResult Index()
         {

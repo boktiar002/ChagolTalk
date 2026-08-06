@@ -1,0 +1,19 @@
+﻿.dashboard-card {
+    max-width: 700px;
+    margin: auto;
+    padding: 45px;
+    text-align: center;
+}
+
+.dashboard-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    margin: auto;
+    margin-bottom: 25px;
+}

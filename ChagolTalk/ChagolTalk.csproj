@@ -27,7 +27,9 @@
 
   <ItemGroup>
     <Folder Include="Configurations\" />
-    <Folder Include="ViewModels\" />
+    <Folder Include="wwwroot\images\" />
+    <Folder Include="wwwroot\avatars\" />
+    <Folder Include="wwwroot\sounds\" />
   </ItemGroup>
 
   <ItemGroup>
