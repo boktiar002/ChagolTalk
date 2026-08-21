@@ -9,10 +9,20 @@ using Microsoft.EntityFrameworkCore;
 
 
 
+
+
+
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>options.UseNpgsql(
-    builder.Configuration.GetConnectionString("ChagolTalkDBContext")));
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("ChagolTalkDBContext"),
+        npgsqlOptions => npgsqlOptions.EnableRetryOnFailure()
+    ));
+//builder.Services.AddDbContext<ApplicationDbContext>(options =>options.UseNpgsql(
+//    builder.Configuration.GetConnectionString("ChagolTalkDBContext")));
+
+
 
 builder.Services
     .AddIdentity<ApplicationUser, IdentityRole>(options =>
