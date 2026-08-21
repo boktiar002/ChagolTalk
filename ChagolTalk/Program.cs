@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>options.UseSqlServer(
+builder.Services.AddDbContext<ApplicationDbContext>(options =>options.UseNpgsql(
     builder.Configuration.GetConnectionString("ChagolTalkDBContext")));
 
 builder.Services
