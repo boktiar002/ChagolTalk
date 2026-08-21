@@ -1,5 +1,2253 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
+    ViewData["Title"] = "Chat";
+    var conversationId = ViewBag.ConversationId;
+}
+
+<style>
+    .chat-page {
+        position: fixed;
+        inset: 0;
+        background: #08090d;
+        color: #f5f5f5;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding-top: 85px;
+    }
+
+    .chat-topbar {
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 28px;
+        border-bottom: 1px solid rgba(255,255,255,.07);
+        background: rgba(8,9,13,.92);
+        backdrop-filter: blur(18px);
+        z-index: 5;
+    }
+
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .brand-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 13px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg,#ffffff,#bfc4d0);
+        color: #08090d;
+        font-size: 20px;
+    }
+
+    .brand-name {
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: -.3px;
+    }
+
+    .stranger-info {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        margin-left: 30px;
+        margin-right: auto;
+    }
+
+    .avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(145deg,#242734,#11131a);
+        border: 1px solid rgba(255,255,255,.09);
+        font-size: 18px;
+    }
+
+    .stranger-name {
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .status {
+        font-size: 11px;
+        color: #8e96a8;
+        margin-top: 2px;
+    }
+
+    .status-dot {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #65d68b;
+        margin-right: 5px;
+        box-shadow: 0 0 10px rgba(101,214,139,.6);
+    }
+
+    .end-button {
+        border: 1px solid rgba(255,255,255,.1);
+        background: rgba(255,255,255,.035);
+        color: #aeb4c1;
+        border-radius: 10px;
+        padding: 9px 15px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: .2s ease;
+    }
+
+        .end-button:hover {
+            color: #fff;
+            background: rgba(255,255,255,.08);
+            border-color: rgba(255,255,255,.18);
+        }
+
+    .messages {
+        flex: 1;
+        width: min(900px,100%);
+        margin: 0 auto;
+        padding: 35px 24px 25px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        scrollbar-width: thin;
+        scrollbar-color: #292d38 transparent;
+    }
+
+    .system-message {
+        align-self: center;
+        margin: 15px 0 25px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.045);
+        color: #7f8797;
+        font-size: 12px;
+    }
+
+    .message {
+        max-width: min(70%,560px);
+        padding: 11px 15px;
+        border-radius: 18px;
+        font-size: 14px;
+        line-height: 1.55;
+        word-wrap: break-word;
+        animation: messageIn .2s ease-out;
+    }
+
+        .message.stranger {
+            align-self: flex-start;
+            background: #171a22;
+            border: 1px solid rgba(255,255,255,.055);
+            border-bottom-left-radius: 5px;
+            color: #e9ebef;
+        }
+
+        .message.me {
+            align-self: flex-end;
+            background: #f1f2f4;
+            color: #0b0c10;
+            border-bottom-right-radius: 5px;
+        }
+
+    .message-author {
+        display: block;
+        font-size: 10px;
+        color: #777f90;
+        margin-bottom: 4px;
+    }
+
+    .me .message-author {
+        color: #656b77;
+    }
+
+    .composer-wrap {
+        width: min(900px,100%);
+        margin: 0 auto;
+        padding: 12px 24px 25px;
+    }
+
+    .composer {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 8px 7px 17px;
+        background: #14161d;
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 18px;
+        box-shadow: 0 12px 40px rgba(0,0,0,.28);
+        transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+        .composer:focus-within {
+            border-color: rgba(255,255,255,.18);
+            box-shadow: 0 12px 45px rgba(0,0,0,.4);
+        }
+
+    #messageInput {
+        flex: 1;
+        min-width: 0;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: #f5f5f5;
+        font-size: 14px;
+        padding: 11px 0;
+    }
+
+        #messageInput::placeholder {
+            color: #666d7b;
+        }
+
+    #sendButton {
+        width: 42px;
+        height: 42px;
+        border: 0;
+        border-radius: 13px;
+        background: #f1f2f4;
+        color: #090a0e;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        font-size: 17px;
+        transition: transform .15s ease, background .2s ease;
+    }
+
+        #sendButton:hover {
+            transform: translateY(-1px);
+            background: #fff;
+        }
+
+        #sendButton:active {
+            transform: scale(.95);
+        }
+
+    .send-icon {
+        transform: translateX(1px);
+    }
+
+    .empty-hint {
+        margin: auto;
+        text-align: center;
+        color: #555c6b;
+    }
+
+        .empty-hint .big {
+            font-size: 34px;
+            margin-bottom: 12px;
+        }
+
+        .empty-hint p {
+            margin: 0;
+            font-size: 13px;
+        }
+
+    @@keyframes messageIn {
+        from {
+            opacity: 0;
+            transform: translateY(5px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@media (max-width: 600px) {
+
+        .chat-topbar {
+            height: 64px;
+            padding: 0 15px;
+        }
+
+        .brand-icon {
+            width: 35px;
+            height: 35px;
+        }
+
+        .stranger-info {
+            margin-left: 15px;
+        }
+
+        .end-button {
+            padding: 8px 10px;
+            font-size: 11px;
+        }
+
+        .messages {
+            padding: 25px 14px 15px;
+        }
+
+        .composer-wrap {
+            padding: 8px 12px 15px;
+        }
+
+        .message {
+            max-width: 82%;
+        }
+
+        .brand-name {
+            display: none;
+        }
+    }
+    .ended-screen {
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+}
+
+.ended-card {
+    width: min(420px, 100%);
+    text-align: center;
+    padding: 45px 30px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: #14161d;
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.35);
+}
+
+.ended-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 20px;
+    border-radius: 20px;
+    display: grid;
+    place-items: center;
+    background: rgba(255,255,255,.06);
+    font-size: 28px;
+}
+
+.ended-card h2 {
+    margin: 0 0 10px;
+    font-size: 22px;
+}
+
+.ended-card p {
+    margin: 0 0 25px;
+    color: #858c9b;
+    font-size: 14px;
+}
+
+#findAnotherButton {
+    border: 0;
+    border-radius: 12px;
+    padding: 12px 22px;
+    background: #f1f2f4;
+    color: #08090d;
+    font-weight: 600;
+    cursor: pointer;
+    transition: .2s ease;
+}
+
+#findAnotherButton:hover {
+    background: white;
+    transform: translateY(-1px);
+}
+
+.finding {
+    color: #858c9b;
+    cursor: default;
+}
+
+    .call-launch-area {
+        width: min(900px, 100%);
+        margin: 0 auto;
+        padding: 10px 24px 5px;
+    }
+
+    .start-call-button {
+        width: 100%;
+        border: 1px solid rgba(255,255,255,.08);
+        background: linear-gradient( 135deg, #191c25, #11131a );
+        color: #fff;
+        border-radius: 16px;
+        padding: 15px 18px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        cursor: pointer;
+        transition: .2s ease;
+        text-align: left;
+    }
+
+        .start-call-button:hover {
+            background: #20232d;
+            transform: translateY(-1px);
+        }
+
+    .call-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 13px;
+        display: grid;
+        place-items: center;
+        background: #f1f2f4;
+        color: #08090d;
+        font-size: 20px;
+    }
+
+    .call-text {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+        .call-text strong {
+            font-size: 14px;
+        }
+
+        .call-text small {
+            color: #858c9b;
+            font-size: 11px;
+        }
+
+    .call-screen {
+        position: relative;
+        inset: 0;
+        z-index: 1000;
+        background: radial-gradient( circle at center, #202431 0%, #0b0d12 45%, #08090d 100% );
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .call-content {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .call-avatar {
+        width: 110px;
+        height: 110px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: linear-gradient( 145deg, #292d39, #151820 );
+        border: 1px solid rgba(255,255,255,.1);
+        font-size: 45px;
+        margin-bottom: 24px;
+        box-shadow: 0 0 0 15px rgba(255,255,255,.025), 0 0 50px rgba(255,255,255,.08);
+    }
+
+    .call-name {
+        font-size: 24px;
+        font-weight: 700;
+    }
+
+    .call-status {
+        margin-top: 8px;
+        color: #858c9b;
+        font-size: 14px;
+    }
+
+    .call-controls,
+    .incoming-controls {
+        display: flex;
+        gap: 22px;
+        margin-top: 55px;
+    }
+
+    .call-control {
+        width: 58px;
+        height: 58px;
+        border: 0;
+        border-radius: 50%;
+        background: #242833;
+        color: white;
+        font-size: 21px;
+        cursor: pointer;
+        transition: .2s ease;
+    }
+
+        .call-control:hover {
+            transform: scale(1.06);
+        }
+
+    .end-call,
+    .decline-call {
+        background: #d94b55;
+    }
+
+    .accept-call {
+        background: #55c878;
+    }
+
+    .incoming-avatar {
+        animation: callPulse 1.8s infinite;
+    }
+    /* ==========================================
+       VOICE CALL TIMER
+       ========================================== */
+
+    .call-timer {
+        margin-top: 8px;
+        font-size: 13px;
+        color: #858c9b;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: .5px;
+    }
+
+    #callEndedState {
+        position: absolute;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 20;
+    }
+
+        #callEndedState > div {
+            width: min(380px, 90%);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 35px 30px;
+        }
+
+            #callEndedState > div > div:first-child {
+                font-size: 42px;
+                margin-bottom: 18px;
+            }
+
+        #callEndedState h2 {
+            margin: 0 0 12px;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        #callEndedState p {
+            margin: 0 0 28px;
+            color: #858c9b;
+            font-size: 14px;
+            line-height: 1.5;
+            position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+            min-height: 100vh; /* Makes parent full height of screen */
+        }
+
+    #closeCallButton {
+        border: 0;
+        border-radius: 12px;
+        padding: 11px 24px;
+        background: #f1f2f4;
+        color: #08090d;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform .15s ease, background .2s ease;
+    }
+
+        #closeCallButton:hover {
+            background: #ffffff;
+            transform: translateY(-1px);
+        }
+
+    @@keyframes callPulse {
+        0%, 100% {
+            box-shadow: 0 0 0 15px rgba(255,255,255,.025), 0 0 50px rgba(255,255,255,.08);
+        }
+
+        50% {
+            box-shadow: 0 0 0 25px rgba(255,255,255,.025), 0 0 70px rgba(255,255,255,.14);
+        }
+    }
+</style>
+
+
+<div class="chat-page">
+
+    <!-- TOP BAR -->
+
+  
+    <header class="chat-topbar">
+
+        <div class="brand">
+            <div class="brand-icon">
+                🐐
+            </div>
+
+            <div class="brand-name">
+                ChagolTalk
+            </div>
+        </div>
+
+
+        <div class="stranger-info">
+
+            <div class="avatar">
+                👤
+            </div>
+
+            <div>
+                <div class="stranger-name">
+                    Stranger
+                </div>
+
+                <div class="status">
+                    <span class="status-dot"></span>
+                    <span id="connectionStatus">
+                        Connecting...
+                    </span>
+                </div>
+            </div>
+
+        </div>
+
+
+        <button id="endButton"
+        type="button"
+        class="end-button">
+    End conversation
+</button>
+
+        <div class="call-launch-area">
+            <button id="startCallButton" class="start-call-button">
+                <span class="call-icon">📞</span>
+
+                <span class="call-text">
+                    <strong>Start Voice Call</strong>
+                    <small>Talk with your stranger</small>
+                </span>
+            </button>
+        </div>
+
+
+    </header>
+
+    <!-- ==========================================
+     VOICE CALL SCREEN
+     ========================================== -->
+
+    <div id="callScreen"
+         class="call-screen"
+         style="display:none;">
+
+        <!-- ======================================
+         NORMAL ACTIVE CALL UI
+         ====================================== -->
+
+        <div id="callContent"
+             class="call-content">
+
+            <!-- Caller / Stranger avatar -->
+            <div class="call-avatar">
+                👤
+            </div>
+
+            <!-- Stranger name -->
+            <div class="call-name">
+                Stranger
+            </div>
+
+            <!-- Current call status -->
+            <div id="callStatus"
+                 class="call-status">
+
+                Calling...
+
+            </div>
+            <!-- ======================================
+     VOICE CALL TIMER
+     ====================================== -->
+
+            <div id="callTimer"
+                 class="call-timer"
+                 style="display:none;">
+
+                00:00
+
+            </div>
+            <!-- Call controls -->
+            <div class="call-controls">
+
+                <!-- Mute / Unmute -->
+                <button id="muteCallButton"
+                        type="button"
+                        class="call-control">
+
+                    🎙️
+
+                </button>
+
+
+                <!-- End voice call -->
+                <button id="endCallButton"
+                        type="button"
+                        class="call-control end-call">
+
+                    ☎
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- ======================================
+         CALL ENDED SCREEN
+
+         IMPORTANT:
+         This exists ONLY ONCE.
+         ====================================== -->
+
+        <div id="callEndedState"
+             style="display:none;">
+
+            <div class="call-ended-inner">
+
+                <div class="call-ended-icon">
+                    ☎
+                </div>
+
+                <h2>
+                    Call ended
+                </h2>
+
+                <p id="callEndedMessage">
+                    The voice call has ended.
+                </p>
+
+                <button id="closeCallButton"
+                        type="button">
+
+                    Back to Chat
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ==========================================
+     INCOMING VOICE CALL SCREEN
+     ========================================== -->
+
+    <div id="incomingCallScreen"
+         class="call-screen"
+         style="display:none;">
+
+        <div class="call-content">
+
+            <!-- Stranger avatar -->
+            <div class="call-avatar incoming-avatar">
+                👤
+            </div>
+
+            <!-- Stranger name -->
+            <div class="call-name">
+                Stranger
+            </div>
+
+            <!-- Incoming status -->
+            <div class="call-status">
+                Incoming voice call...
+            </div>
+
+            <!-- Accept / Decline -->
+            <div class="incoming-controls">
+
+                <button id="declineCallButton"
+                        type="button"
+                        class="call-control decline-call">
+
+                    ✕
+
+                </button>
+
+
+                <button id="acceptCallButton"
+                        type="button"
+                        class="call-control accept-call">
+
+                    📞
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- MESSAGES -->
+    <main id="messages"
+          class="messages">
+
+        <div id="systemMessage"
+             class="system-message">
+            Connecting you to the conversation...
+        </div>
+
+        <div class="empty-hint"
+             id="emptyHint">
+
+            <div class="big">
+                💬
+            </div>
+
+            <p>
+                Say hello. You never know where the conversation might go.
+            </p>
+
+        </div>
+
+    </main>
+
+    <div id="endedScreen"
+     class="ended-screen"
+     style="display:none;">
+
+    <div class="ended-card">
+
+        <div class="ended-icon">
+            👋
+        </div>
+
+        <h2>Conversation ended</h2>
+
+        <p id="endedMessage">
+            Your stranger left the conversation.
+        </p>
+
+        <button id="findAnotherButton"
+                type="button">
+            Find Someone
+        </button>
+
+    </div>
+
+</div>
+
+    <!-- COMPOSER -->
+    <div class="composer-wrap">
+
+        <div class="composer">
+
+            <input id="messageInput"
+                   type="text"
+                   maxlength="2000"
+                   placeholder="Say something..."
+                   autocomplete="off" />
+
+            <button id="sendButton"
+                    aria-label="Send message">
+
+                <span class="send-icon">
+                    ➤
+                </span>
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@section Scripts
+{
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+
+    <script>
+
+        // ==========================================
+        // CONVERSATION
+        // ==========================================
+
+        const conversationId = "@ViewBag.ConversationId";
+
+
+        // ==========================================
+        // SIGNALR CONNECTION
+        // ==========================================
+
+        const connection =
+            new signalR.HubConnectionBuilder()
+                .withUrl("/chatHub")
+                .withAutomaticReconnect()
+                .build();
+
+
+        connection.on(
+            "IncomingVoiceCall",
+            function() {
+
+                console.log("Incoming voice call!");
+
+                incomingCallScreen.style.display = "flex";
+            }
+        );
+
+        // ==========================================
+        // DOM ELEMENTS
+        // ==========================================
+
+        const connectionStatus =
+            document.getElementById("connectionStatus");
+
+        const messages =
+            document.getElementById("messages");
+
+        const systemMessage =
+            document.getElementById("systemMessage");
+
+        const messageInput =
+            document.getElementById("messageInput");
+
+        const sendButton =
+            document.getElementById("sendButton");
+
+        const endButton =
+            document.getElementById("endButton");
+
+        const endedScreen =
+            document.getElementById("endedScreen");
+
+        const endedMessage =
+            document.getElementById("endedMessage");
+
+        const findAnotherButton =
+            document.getElementById("findAnotherButton");
+
+        const composerWrap =
+            document.querySelector(".composer-wrap");
+
+        const emptyHint =
+            document.getElementById("emptyHint");
+
+
+            const startCallButton =
+    document.getElementById("startCallButton");
+
+const callScreen =
+    document.getElementById("callScreen");
+
+const endCallButton =
+    document.getElementById("endCallButton");
+
+const callStatus =
+    document.getElementById("callStatus");
+
+const muteCallButton =
+    document.getElementById("muteCallButton");
+
+const incomingCallScreen =
+    document.getElementById("incomingCallScreen");
+
+const acceptCallButton =
+    document.getElementById("acceptCallButton");
+
+const declineCallButton =
+    document.getElementById("declineCallButton");
+        // ==========================================
+        // VOICE CALL TIMER
+        // ==========================================
+        const callTimer =
+            document.getElementById("callTimer");
+
+        let callTimerInterval = null;
+        let callSeconds = 0;
+
+
+
+   //for microphpne permission
+        let peerConnection = null;
+        let localStream = null;
+        let remoteAudio = null;
+
+
+
+     //WEBRTC configuration
+
+        async function setupVoiceConnection() {
+
+    try {
+
+        console.log("Requesting microphone...");
+
+        // ==========================================
+        // 1. GET MICROPHONE
+        // ==========================================
+
+        localStream =
+            await navigator.mediaDevices.getUserMedia({
+                audio: true,
+                video: false
+            });
+
+        console.log(
+            "Microphone permission granted."
+        );
+
+
+        // ==========================================
+        // 2. CREATE PEER CONNECTION
+        // ==========================================
+
+        peerConnection =
+            new RTCPeerConnection({
+                iceServers: [
+                    {
+                        urls: "stun:stun.l.google.com:19302"
+                    }
+                ]
+            });
+
+
+        console.log(
+            "Peer connection created."
+        );
+
+
+        // ==========================================
+        // 3. ICE CANDIDATES
+        // ==========================================
+
+        peerConnection.onicecandidate =
+            async function (event) {
+
+                if (!event.candidate)
+                    return;
+
+                await connection.invoke(
+                    "SendIceCandidate",
+                    conversationId,
+                    JSON.stringify(
+                        event.candidate
+                    )
+                );
+            };
+
+
+        // ==========================================
+        // 4. ADD MICROPHONE TRACK
+        // ==========================================
+
+        localStream
+            .getTracks()
+            .forEach(function (track) {
+
+                peerConnection.addTrack(
+                    track,
+                    localStream
+                );
+
+            });
+
+
+        // ==========================================
+        // 5. RECEIVE STRANGER AUDIO
+        // ==========================================
+
+        peerConnection.ontrack =
+            function (event) {
+
+                console.log(
+                    "Remote audio received."
+                );
+
+                if (!remoteAudio) {
+
+                    remoteAudio =
+                        document.createElement(
+                            "audio"
+                        );
+
+                    remoteAudio.autoplay =
+                        true;
+
+                    remoteAudio.playsInline =
+                        true;
+
+                    document.body.appendChild(
+                        remoteAudio
+                    );
+                }
+
+                remoteAudio.srcObject =
+                    event.streams[0];
+            };
+
+                // ==========================================
+                // WEBRTC CONNECTION STATE
+                // ==========================================
+
+                peerConnection.onconnectionstatechange =
+                    function() {
+
+                        const state =
+                            peerConnection.connectionState;
+
+
+                        console.log(
+                            "WebRTC connection state:",
+                            state
+                        );
+
+
+                        // ======================================
+                        // CALL SUCCESSFULLY CONNECTED
+                        // ======================================
+
+                        if (state === "connected") {
+
+                            callStatus.textContent =
+                                "🟢 Connected";
+
+                            startCallTimer();
+
+                            return;
+                        }
+
+
+                        // ======================================
+                        // CALL FAILED
+                        // ======================================
+
+                        if (state === "failed") {
+
+                            console.error(
+                                "WebRTC connection failed."
+                            );
+
+                            callStatus.textContent =
+                                "Connection failed";
+
+                            stopCallTimer();
+
+                            return;
+                        }
+
+
+                        // ======================================
+                        // TEMPORARY DISCONNECTION
+                        // ======================================
+
+                        if (state === "disconnected") {
+
+                            console.log(
+                                "WebRTC temporarily disconnected. Waiting..."
+                            );
+
+                            callStatus.textContent =
+                                "Reconnecting...";
+
+                            return;
+                        }
+
+                    };
+
+
+                console.log(
+                    "WebRTC voice connection ready."
+                );
+
+
+            }
+
+            // ==========================================
+            // MICROPHONE / WEBRTC ERROR
+            // ==========================================
+
+            catch (error) {
+
+                console.error(
+                    "Microphone/WebRTC error:",
+                    error
+                );
+
+                alert(
+                    "Microphone permission is required for voice calls."
+                );
+            }
+
+        }
+
+
+        // ==========================================
+        // START CALL TIMER
+        // ==========================================
+
+        function startCallTimer() {
+
+            // Prevent duplicate timers
+            stopCallTimer();
+
+            callSeconds = 0;
+
+            callTimer.textContent =
+                "00:00";
+
+            callTimer.style.display =
+                "block";
+
+
+            callTimerInterval =
+                setInterval(
+                    function() {
+
+                        callSeconds++;
+
+                        const minutes =
+                            Math.floor(
+                                callSeconds / 60
+                            );
+
+                        const seconds =
+                            callSeconds % 60;
+
+
+                        callTimer.textContent =
+                            String(minutes).padStart(2, "0")
+                            + ":"
+                            + String(seconds).padStart(2, "0");
+
+                    },
+                    1000
+                );
+        }
+
+
+        // ==========================================
+        // STOP CALL TIMER
+        // ==========================================
+
+        function stopCallTimer() {
+
+            if (callTimerInterval !== null) {
+
+                clearInterval(
+                    callTimerInterval
+                );
+
+                callTimerInterval = null;
+            }
+        }
+// ==========================================
+// CLEANUP VOICE CALL
+// ==========================================
+
+function cleanupVoiceCall() {
+
+            // Stop timer when voice call ends
+            stopCallTimer();
+
+            callTimer.style.display = "none";
+
+    console.log(
+        "Cleaning up voice call..."
+    );
+
+
+    // Stop microphone
+    if (localStream) {
+
+        localStream
+            .getTracks()
+            .forEach(function (track) {
+
+                track.stop();
+
+            });
+
+        localStream = null;
+    }
+
+
+    // Close WebRTC connection
+    if (peerConnection) {
+
+        peerConnection.close();
+
+        peerConnection = null;
+    }
+
+
+    // Remove remote audio
+    if (remoteAudio) {
+
+        remoteAudio.srcObject = null;
+
+        remoteAudio.remove();
+
+        remoteAudio = null;
+    }
+
+
+    console.log(
+        "Voice call cleaned up."
+    );
+}
+       
+        // ==========================================
+        // OPEN CALL SCREEN
+        // ==========================================
+
+        startCallButton.addEventListener(
+            "click",
+            async function() {
+
+                try {
+
+                    callScreen.style.display = "flex";
+
+                    callStatus.textContent =
+                        "Calling...";
+
+                    await setupVoiceConnection();
+                    await connection.invoke(
+                        "StartVoiceCall",
+                        conversationId
+                    );
+
+                    console.log(
+                        "Voice call request sent."
+                    );
+
+                }
+                catch (error) {
+
+                    console.error(
+                        "Start voice call error:",
+                        error
+                    );
+
+                    callScreen.style.display =
+                        "none";
+
+                    alert(
+                        "Could not start the call."
+                    );
+                }
+            }
+        );
+
+        // ==========================================
+        // END VOICE CALL
+        // ==========================================
+
+        endCallButton.addEventListener(
+            "click",
+            async function() {
+
+                try {
+
+                    // Tell the other user
+                    await connection.invoke(
+                        "EndVoiceCall",
+                        conversationId
+                    );
+
+                    // Clean up our WebRTC connection
+                    cleanupVoiceCall();
+
+                    // Show ended state
+                    showCallEndedScreen(
+                        "You ended the voice call."
+                    );
+
+                }
+                catch (error) {
+
+                    console.error(
+                        "End voice call error:",
+                        error
+                    );
+
+                }
+
+            }
+        );
+        // ==========================================
+        // MUTE / UNMUTE
+        // ==========================================
+
+        let isMuted = false;
+
+        muteCallButton.addEventListener(
+            "click",
+            function() {
+
+                if (!localStream)
+                    return;
+
+                isMuted = !isMuted;
+
+                localStream.getAudioTracks().forEach(
+                    function(track) {
+
+                        track.enabled = !isMuted;
+
+                    }
+                );
+
+                if (isMuted) {
+
+                    muteCallButton.textContent =
+                        "🔇";
+
+                    console.log(
+                        "Microphone muted."
+                    );
+
+                }
+                else {
+
+                    muteCallButton.textContent =
+                        "🎙️";
+
+                    console.log(
+                        "Microphone unmuted."
+                    );
+                }
+            }
+        );
+
+
+        // ==========================================
+        // ACCEPT VOICE CALL
+        // ==========================================
+
+        acceptCallButton.addEventListener(
+            "click",
+            async function() {
+
+                incomingCallScreen.style.display =
+                    "none";
+
+                callScreen.style.display =
+                    "flex";
+
+                callStatus.textContent =
+                    "Connecting...";
+
+                console.log(
+                    "Voice call accepted."
+                );
+
+                await setupVoiceConnection();
+                const offer =
+                    await peerConnection.createOffer();
+
+                await peerConnection.setLocalDescription(
+                    offer
+                );
+
+                await connection.invoke(
+                    "SendVoiceOffer",
+                    conversationId,
+                    JSON.stringify(offer)
+                );
+            }
+        );
+
+
+        // ==========================================
+        // DECLINE VOICE CALL
+        // ==========================================
+
+        declineCallButton.addEventListener(
+            "click",
+            function() {
+
+                incomingCallScreen.style.display =
+                    "none";
+
+                console.log("Voice call declined.");
+            }
+        );
+        // ==========================================
+        // SHOW CALL ENDED
+        // ==========================================
+
+        function showCallEndedScreen(message) {
+
+            // Stop/hide the normal call interface
+            const callContent =
+                document.getElementById("callContent");
+
+            if (callContent)
+                callContent.style.display = "none";
+
+
+            // Show ended screen
+            const callEndedState =
+                document.getElementById("callEndedState");
+
+            const callEndedMessage =
+                document.getElementById("callEndedMessage");
+
+
+            callEndedMessage.textContent =
+                message;
+
+
+            callEndedState.style.display =
+                "flex";
+
+
+            // Update status
+            if (callStatus)
+                callStatus.textContent =
+                    "Call ended";
+
+
+            // Hide call controls
+            if (muteCallButton)
+                muteCallButton.style.display = "none";
+
+            if (endCallButton)
+                endCallButton.style.display = "none";
+
+
+            console.log(
+                "Voice call ended screen displayed."
+            );
+        }
+
+
+
+        document.getElementById(
+            "closeCallButton"
+        ).addEventListener(
+            "click",
+            function() {
+
+                callScreen.style.display =
+                    "none";
+
+                console.log(
+                    "Call interface closed."
+                );
+
+            }
+        );
+
+
+
+        // ==========================================
+        // RECEIVE OFFER
+        // ==========================================
+
+        connection.on(
+            "ReceiveVoiceOffer",
+            async function(offer) {
+
+                console.log("Voice offer received.");
+
+                const remoteOffer =
+                    JSON.parse(offer);
+
+                await peerConnection.setRemoteDescription(
+                    new RTCSessionDescription(remoteOffer)
+                );
+
+                const answer =
+                    await peerConnection.createAnswer();
+
+                await peerConnection.setLocalDescription(
+                    answer
+                );
+
+                await connection.invoke(
+                    "SendVoiceAnswer",
+                    conversationId,
+                    JSON.stringify(answer)
+                );
+
+                callStatus.textContent =
+                    "Connected";
+            }
+        );
+
+
+        // ==========================================
+        // RECEIVE ANSWER
+        // ==========================================
+
+        connection.on(
+            "ReceiveVoiceAnswer",
+            async function(answer) {
+
+                console.log("Voice answer received.");
+
+                const remoteAnswer =
+                    JSON.parse(answer);
+
+                await peerConnection.setRemoteDescription(
+                    new RTCSessionDescription(remoteAnswer)
+                );
+
+                callStatus.textContent =
+                    "Connected";
+            }
+        );
+
+
+        // ==========================================
+        // RECEIVE ICE CANDIDATE
+        // ==========================================
+
+        connection.on(
+            "ReceiveIceCandidate",
+            async function(candidate) {
+
+                console.log(
+                    "ICE candidate received."
+                );
+
+                if (!peerConnection)
+                    return;
+
+                await peerConnection.addIceCandidate(
+                    new RTCIceCandidate(
+                        JSON.parse(candidate)
+                    )
+                );
+            }
+        );
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // ==========================================
+        // HTML ESCAPE
+        // ==========================================
+
+        function escapeHtml(text) {
+
+            const div =
+                document.createElement("div");
+
+            div.textContent = text;
+
+            return div.innerHTML;
+        }
+
+
+        // ==========================================
+        // ADD MESSAGE
+        // ==========================================
+
+        function addMessage(
+            user,
+            message,
+            isMine) {
+            if (emptyHint)
+                emptyHint.remove();
+
+
+            const element =
+                document.createElement("div");
+
+
+            element.className =
+                "message " +
+                (isMine ? "me" : "stranger");
+
+
+            element.innerHTML = `
+                        <span class="message-author">
+                            ${isMine ? "You" : "Stranger"}
+                        </span>
+
+                        ${escapeHtml(message)}
+                    `;
+
+
+            messages.appendChild(element);
+
+
+            messages.scrollTop =
+                messages.scrollHeight;
+        }
+
+
+        // ==========================================
+        // SHOW ENDED SCREEN
+        // ==========================================
+
+        function showEndedScreen(message) {
+
+            messages.style.display =
+                "none";
+
+
+            messageInput.style.display =
+                "none";
+
+
+            sendButton.style.display =
+                "none";
+
+
+            if (endButton)
+                endButton.style.display =
+                    "none";
+
+
+            if (composerWrap)
+                composerWrap.style.display =
+                    "none";
+
+
+            endedScreen.style.display =
+                "flex";
+
+
+            endedMessage.textContent =
+                message;
+
+
+            connectionStatus.textContent =
+                "Conversation ended";
+        }
+
+
+        // ==========================================
+        // JOIN CURRENT CONVERSATION
+        // ==========================================
+
+        async function joinConversation() {
+
+            try {
+
+                await connection.invoke(
+                    "JoinConversation",
+                    conversationId
+                );
+
+
+                console.log(
+                    "Joined conversation:",
+                    conversationId
+                );
+
+            }
+            catch (error) {
+
+                console.error(
+                    "Join conversation error:",
+                    error
+                );
+
+
+                connectionStatus.textContent =
+                    "Unable to join";
+
+
+                // If the server says the conversation
+                // is already ended, show the ended screen.
+                if (
+                    error &&
+                    error.message &&
+                    error.message.toLowerCase()
+                        .includes("already ended")
+                ) {
+
+                    showEndedScreen(
+                        "This conversation has already ended."
+                    );
+                }
+            }
+        }
+
+
+        // ==========================================
+        // CONNECTION STATUS
+        // ==========================================
+
+        connection.onreconnecting(
+            function() {
+
+                connectionStatus.textContent =
+                    "Reconnecting...";
+
+                console.log(
+                    "SignalR reconnecting..."
+                );
+            }
+        );
+
+
+        // ==========================================
+        // IMPORTANT:
+        // REJOIN GROUP AFTER RECONNECT
+        // ==========================================
+
+        connection.onreconnected(
+            async function() {
+
+                connectionStatus.textContent =
+                    "Connected";
+
+                console.log(
+                    "SignalR reconnected."
+                );
+
+
+                // A reconnect creates a new
+                // SignalR connection ID.
+                //
+                // Therefore the new connection
+                // must join the conversation group again.
+
+                await joinConversation();
+            }
+        );
+
+
+        connection.onclose(
+            function() {
+
+                connectionStatus.textContent =
+                    "Disconnected";
+
+
+                console.log(
+                    "SignalR connection closed."
+                );
+            }
+        );
+
+
+        // ==========================================
+        // JOINED CONVERSATION
+        // ==========================================
+
+        connection.on(
+            "JoinedConversation",
+            function(joinedConversationId) {
+
+                console.log(
+                    "SUCCESSFULLY JOINED GROUP:",
+                    joinedConversationId
+                );
+
+
+                connectionStatus.textContent =
+                    "Connected";
+
+
+                systemMessage.textContent =
+                    "You're connected. Say hello!";
+            }
+        );
+
+
+        // ==========================================
+        // RECEIVE MESSAGE FROM STRANGER
+        // ==========================================
+
+        connection.on(
+            "ReceiveMessage",
+            function(user, message) {
+
+                addMessage(
+                    user,
+                    message,
+                    false
+                );
+            }
+        );
+
+
+        // ==========================================
+        // RECEIVE OWN MESSAGE
+        // ==========================================
+
+        connection.on(
+            "ReceiveOwnMessage",
+            function(user, message) {
+
+                addMessage(
+                    user,
+                    message,
+                    true
+                );
+            }
+        );
+
+
+        // ==========================================
+        // OTHER USER ENDED CONVERSATION
+        // ==========================================
+
+        connection.on(
+            "ConversationEnded",
+            function() {
+
+                console.log(
+                    "The other user ended the conversation."
+                );
+
+
+                showEndedScreen(
+                    "Your stranger left the conversation."
+                );
+            }
+        );
+
+
+        // ==========================================
+        // NEW MATCH FOUND
+        // ==========================================
+
+        connection.on(
+            "MatchFound",
+            function(newConversationId) {
+
+                console.log(
+                    "New match:",
+                    newConversationId
+                );
+
+
+                window.location.href =
+                    "/Chat/Room?id=" +
+                    newConversationId;
+            }
+        );
+
+
+        // ==========================================
+        // START CONNECTION
+        // ==========================================
+
+        async function startConnection() {
+
+            try {
+
+                connectionStatus.textContent =
+                    "Connecting...";
+
+
+                await connection.start();
+
+
+                console.log(
+                    "SignalR CONNECTED"
+                );
+
+
+                // IMPORTANT:
+                // Join the conversation after the
+                // initial connection.
+
+                await joinConversation();
+
+            }
+            catch (error) {
+
+                console.error(
+                    "SignalR connection error:",
+                    error
+                );
+
+
+                connectionStatus.textContent =
+                    "Connection failed";
+
+
+                // Retry initial connection.
+                setTimeout(
+                    startConnection,
+                    5000
+                );
+            }
+        }
+
+
+        // ==========================================
+        // SEND MESSAGE
+        // ==========================================
+
+        async function sendMessage() {
+
+            const message =
+                messageInput.value.trim();
+
+
+            if (!message)
+                return;
+
+
+            if (
+                connection.state !==
+                signalR.HubConnectionState.Connected
+            ) {
+
+                console.log(
+                    "Cannot send message. SignalR is not connected."
+                );
+
+                return;
+            }
+
+
+            try {
+
+                await connection.invoke(
+                    "SendMessage",
+                    conversationId,
+                    message
+                );
+
+
+                messageInput.value = "";
+
+
+                messageInput.focus();
+
+            }
+            catch (error) {
+
+                console.error(
+                    "Send message error:",
+                    error
+                );
+            }
+        }
+
+
+        // ==========================================
+        // SEND BUTTON
+        // ==========================================
+
+        sendButton.addEventListener(
+            "click",
+            sendMessage
+        );
+
+
+        // ==========================================
+        // ENTER = SEND
+        // ==========================================
+
+        messageInput.addEventListener(
+            "keydown",
+            function(event) {
+
+                if (event.key === "Enter") {
+
+                    event.preventDefault();
+
+                    sendMessage();
+                }
+            }
+        );
+
+
+        // ==========================================
+        // END CONVERSATION
+        // ==========================================
+
+        endButton.addEventListener(
+            "click",
+            async function() {
+
+                const confirmed =
+                    confirm(
+                        "End this conversation?"
+                    );
+
+
+                if (!confirmed)
+                    return;
+
+
+                try {
+
+                    await connection.invoke(
+                        "EndConversation",
+                        conversationId
+                    );
+
+
+                    // Only the person who clicked
+                    // End reaches this code.
+                    showEndedScreen(
+                        "You ended the conversation."
+                    );
+
+                }
+                catch (error) {
+
+                    console.error(
+                        "END CONVERSATION ERROR:",
+                        error
+                    );
+
+
+                    alert(
+                        "Could not end the conversation."
+                    );
+                }
+            }
+        );
+
+
+        // ==========================================
+        // FIND ANOTHER PERSON
+        // ==========================================
+
+        findAnotherButton.addEventListener(
+            "click",
+            async function() {
+
+                try {
+
+                    findAnotherButton.disabled =
+                        true;
+
+
+                    findAnotherButton.textContent =
+                        "Finding someone...";
+
+
+                    findAnotherButton.classList.add(
+                        "finding"
+                    );
+
+
+                    await connection.invoke(
+                        "FindAnother"
+                    );
+
+                }
+                catch (error) {
+
+                    console.error(
+                        "Find another error:",
+                        error
+                    );
+
+
+                    findAnotherButton.disabled =
+                        false;
+
+
+                    findAnotherButton.textContent =
+                        "Find Someone";
+
+
+                    findAnotherButton.classList.remove(
+                        "finding"
+                    );
+                }
+            }
+        );
+        // ==========================================
+        // LOGOUT FROM ACTIVE CONVERSATION
+        // ==========================================
+
+        const logoutForm =
+            document.getElementById("logoutForm");
+
+
+        if (logoutForm) {
+
+            logoutForm.addEventListener(
+                "submit",
+                async function(event) {
+
+                    // Stop the form from submitting immediately.
+                    event.preventDefault();
+
+
+                    try {
+
+                        // Tell SignalR that this is an
+                        // intentional logout.
+                        if (
+                            connection.state ===
+                            signalR.HubConnectionState.Connected
+                        ) {
+
+                            await connection.invoke(
+                                "LogoutFromChat",
+                                conversationId
+                            );
+
+                            console.log(
+                                "Conversation ended because user logged out."
+                            );
+                        }
+
+                    }
+                    catch (error) {
+
+                        console.error(
+                            "Logout SignalR error:",
+                            error
+                        );
+
+                        // Even if SignalR fails,
+                        // don't trap the user on the page.
+                    }
+
+
+                    // Now submit the normal logout form.
+                    logoutForm.submit();
+                }
+            );
+        }
+        // ==========================================
+        // OTHER USER ENDED VOICE CALL
+        // ==========================================
+
+        connection.on(
+            "VoiceCallEnded",
+            function() {
+
+                console.log(
+                    "The other user ended the voice call."
+                );
+
+
+                cleanupVoiceCall();
+
+
+                showCallEndedScreen(
+                    "The other user ended the voice call."
+                );
+
+            }
+        );
+        // ==========================================
+        // START
+        // ==========================================
+
+        startConnection();
+
+    </script>
 }

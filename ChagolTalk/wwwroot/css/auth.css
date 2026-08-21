@@ -1,7 +1,8 @@
 ﻿.auth-card {
-    max-width: 480px;
-    margin: 80px auto;
-    padding: 45px;
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 40px;
 }
 
 .auth-title {
@@ -21,4 +22,119 @@
     width: 100%;
     padding: 14px;
     font-size: 17px;
+}
+.auth-container {
+    min-height: calc(100vh - 90px);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 20px;
+}
+
+.brand-icon {
+    font-size: 65px;
+    margin-bottom: 20px;
+}
+
+.password-wrapper {
+    position: relative;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #9CA3AF;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+    .password-toggle:hover {
+        color: white;
+    }
+
+.auth-card {
+    animation: fadeUp .45s ease;
+}
+
+.auth-title {
+    color: var(--text);
+}
+
+.auth-subtitle {
+    color: var(--text2);
+}
+
+.auth-card label {
+    color: var(--text);
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.auth-card {
+    color: var(--text);
+}
+
+.form-check-label {
+    color: var(--text);
+}
+
+.form-check-input {
+    cursor: pointer;
+}
+
+.auth-card a {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+ .auth-card a:hover {
+     color: #77a7ff;
+
+ }
+.text-danger {
+    color: #ff6b6b !important;
+}
+
+@keyframes fadeUp {
+
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.section-title {
+    margin: 25px 0 20px;
+    font-weight: 700;
+    color: var(--text);
+    border-left: 4px solid var(--primary);
+    padding-left: 12px;
+}
+
+.password-strength {
+    font-size: 14px;
+    font-weight: 600;
+    color: #4F8CFF;
+}
+
+textarea.form-control {
+    resize: none;
+}
+.section-title {
+    margin-bottom: 20px;
+}
+
+.password-strength {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary);
+    margin-top: 8px;
 }

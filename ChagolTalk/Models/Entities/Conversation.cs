@@ -22,5 +22,7 @@ namespace ChagolTalk.Models.Entities
         public ApplicationUser User1 { get; set; } = null!;
 
         public ApplicationUser User2 { get; set; } = null!;
+
+        public ICollection<Message> Messages { get; set; } = new List<Message>();
     }
 }

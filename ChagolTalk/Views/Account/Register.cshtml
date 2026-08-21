@@ -1,44 +1,165 @@
 ﻿@model ChagolTalk.ViewModels.Account.RegisterViewModel
 
 @{
-    ViewData["Title"] = "Register";
+    ViewData["Title"] = "Create Account";
 }
 
-<div class="container mt-5" style="max-width:450px;">
+<div class="auth-container">
 
-    <h2 class="mb-4 text-center">Create Account</h2>
+    <div class="card auth-card">
 
-    <form asp-action="Register" method="post">
+        <div class="text-center mb-4">
 
-        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+            <h2 class="brand-logo">
+                @AppSettings.AppName
+            </h2>
 
-        <div class="mb-3">
-            <label asp-for="Username"></label>
-            <input asp-for="Username" class="form-control" />
-            <span asp-validation-for="Username" class="text-danger"></span>
+            <h1 class="auth-title">
+                Create Account
+            </h1>
+
+            <p class="auth-subtitle">
+                @AppSettings.Tagline
+            </p>
+
         </div>
 
-        <div class="mb-3">
-            <label asp-for="Password"></label>
-            <input asp-for="Password" class="form-control" />
-            <span asp-validation-for="Password" class="text-danger"></span>
+        <form asp-action="Register" method="post">
+
+            <div asp-validation-summary="ModelOnly"
+                 class="text-danger mb-3">
+            </div>
+
+            <div class="mb-4">
+
+                <label asp-for="Username"></label>
+
+                <input asp-for="Username"
+                       class="form-control"
+                       placeholder="Choose a username" />
+
+                <span asp-validation-for="Username"
+                      class="text-danger"></span>
+
+            </div>
+
+            <div class="mb-4">
+
+                <label asp-for="Password"></label>
+
+                <div class="password-wrapper">
+
+                    <input asp-for="Password"
+                           id="password"
+                           class="form-control"
+                           placeholder="Password" />
+
+                    <button type="button"
+                            id="togglePassword"
+                            class="password-toggle"
+                        👁
+                    </button>
+
+                </div>
+
+                <div id="passwordStrength"
+                     class="password-strength mt-2">
+
+                    Weak
+
+                </div>
+
+                <span asp-validation-for="Password"
+                      class="text-danger"></span>
+
+            </div>
+
+            <div class="mb-4">
+
+                <label asp-for="ConfirmPassword"></label>
+
+                <input asp-for="ConfirmPassword"
+                       class="form-control"
+                       placeholder="Confirm password" />
+
+                <span asp-validation-for="ConfirmPassword"
+                      class="text-danger"></span>
+
+            </div>
+
+            <button class="btn btn-primary w-100">
+
+                Create Account
+
+            </button>
+
+        </form>
+
+        <hr class="my-4" />
+
+        <div class="text-center">
+
+            Already have an account?
+
+            <a asp-action="Login">
+
+                Login
+
+            </a>
+
         </div>
 
-        <div class="mb-4">
-            <label asp-for="ConfirmPassword"></label>
-            <input asp-for="ConfirmPassword" class="form-control" />
-            <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
-        </div>
-
-        <button class="btn btn-primary w-100">
-            Register
-        </button>
-
-    </form>
+    </div>
 
 </div>
 
-@section Scripts
-{
+@section Scripts {
+
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+
+        document.addEventListener("DOMContentLoaded", function() {
+
+            const password = document.querySelector('input[name="Password"]');
+            const toggle = document.getElementById("togglePassword");
+            const indicator = document.getElementById("passwordStrength");
+
+            toggle.addEventListener("click", function() {
+
+                password.type =
+                    password.type === "password"
+                        ? "text"
+                        : "password";
+
+            });
+
+            password.addEventListener("input", function() {
+
+                let score = 0;
+
+                const value = password.value;
+
+                if (value.length >= 8) score++;
+                if (/[A-Z]/.test(value)) score++;
+                if (/[0-9]/.test(value)) score++;
+                if (/[^A-Za-z0-9]/.test(value)) score++;
+
+                const levels = [
+                    { text: "Weak", color: "#ef4444" },
+                    { text: "Fair", color: "#f59e0b" },
+                    { text: "Good", color: "#3b82f6" },
+                    { text: "Strong", color: "#22c55e" },
+                    { text: "Excellent", color: "#10b981" }
+                ];
+
+                indicator.innerHTML = levels[score].text;
+                indicator.style.color = levels[score].color;
+
+            });
+
+        });
+
+    </script>
+
 }

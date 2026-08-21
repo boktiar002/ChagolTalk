@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - ChagolTalk</title>
+    <title>@ViewData["Title"] - @AppSettings.AppName</title>
 
     <!-- Google Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,25 +35,30 @@
 
                     @if (User.Identity?.IsAuthenticated == true)
                     {
-                        <a class="btn btn-nav me-2"
-                           asp-controller="Dashboard"
-                           asp-action="Index">
-                            Dashboard
-                        </a>
 
-                        <form asp-controller="Account"
-                              asp-action="Logout"
-                              method="post">
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <a class="btn btn-nav me-2"
+                               asp-controller="Dashboard"
+                               asp-action="Index">
+                                Dashboard
+                            </a>
 
-                            @Html.AntiForgeryToken()
+                            <form asp-controller="Account"
+                                  asp-action="Logout"
+                                  method="post"
+                                  id="logoutForm">
 
-                            <button class="btn btn-danger">
+                                @Html.AntiForgeryToken()
 
-                                Logout
+                                <button type="submit"
+                                        class="btn btn-danger"
+                                        id="logoutButton">
+                                    Logout
+                                </button>
 
-                            </button>
-
-                        </form>
+                            </form>
+                        }
                     }
                     else
                     {
@@ -92,7 +97,7 @@
 
         <div class="container">
 
-            © 2026 ChagolTalk
+            © 2026 @AppSettings.Company
 
         </div>
 

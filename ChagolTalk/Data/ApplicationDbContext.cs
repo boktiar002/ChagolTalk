@@ -15,6 +15,7 @@ namespace ChagolTalk.Data
         }
 
         public DbSet<Conversation> Conversations { get; set; }
+        public DbSet<Message> Messages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -30,6 +31,18 @@ namespace ChagolTalk.Data
                 .HasOne(c => c.User2)
                 .WithMany()
                 .HasForeignKey(c => c.User2Id)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Message>()
+           .HasOne(m => m.Conversation)
+           .WithMany(c => c.Messages)
+           .HasForeignKey(m => m.ConversationId)
+           .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<Message>()
+                .HasOne(m => m.Sender)
+                .WithMany()
+                .HasForeignKey(m => m.SenderId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
 

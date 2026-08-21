@@ -1,0 +1,143 @@
+﻿@{
+    ViewData["Title"] = "Find Someone";
+}
+
+<div class="text-center mt-5">
+
+    <h1 id="statusText">Ready?</h1>
+
+    <p id="statusMessage">
+        Find a random person and start a conversation.
+    </p>
+
+    <button id="startButton"
+            class="btn btn-primary btn-lg">
+        Start Chat
+    </button>
+
+    <div id="debugBox"
+         style="margin-top:30px; padding:15px; text-align:left;
+        background:#111827; color:#9ca3af;
+        border-radius:10px; font-family:monospace;">
+        Status: Page loaded
+    </div>
+
+</div>
+
+@section Scripts {
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/10.0.0/signalr.min.js"></script>
+
+    <script>
+
+        const statusText = document.getElementById("statusText");
+        const statusMessage = document.getElementById("statusMessage");
+        const startButton = document.getElementById("startButton");
+        const debugBox = document.getElementById("debugBox");
+
+        function debug(message) {
+            console.log(message);
+            debugBox.innerHTML += "<br>" + message;
+        }
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/chatHub")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("DebugMessage", function(message) {
+            debug(message);
+        });
+
+        connection.on("WaitingForMatch", function() {
+
+            debug("SERVER: WaitingForMatch received");
+
+            statusText.textContent = "Finding someone...";
+            statusMessage.textContent =
+                "We're looking for a random person for you.";
+
+            startButton.disabled = true;
+            startButton.textContent = "Searching...";
+        });
+
+        connection.on("MatchFound", function(conversationId) {
+
+            debug("SERVER: MatchFound received");
+            debug("Conversation ID: " + conversationId);
+
+            statusText.textContent = "Match found!";
+
+            statusMessage.textContent =
+                "Your conversation is ready.";
+
+            window.location.href =
+                "/Chat/Room?id=" + conversationId;
+        });
+
+        connection.onclose(function(error) {
+
+            debug("SIGNALR CLOSED");
+
+            if (error) {
+                debug("Error: " + error);
+            }
+        });
+
+        connection.onreconnecting(function() {
+
+            debug("SIGNALR RECONNECTING...");
+        });
+
+        connection.onreconnected(function() {
+
+            debug("SIGNALR RECONNECTED");
+        });
+
+        startButton.addEventListener("click", async function() {
+
+            debug("Start Chat clicked");
+
+            startButton.disabled = true;
+            startButton.textContent = "Connecting...";
+
+            try {
+
+                debug("SignalR state: " + connection.state);
+
+                if (connection.state === "Disconnected") {
+
+                    debug("Starting SignalR connection...");
+
+                    await connection.start();
+
+                    debug("SignalR CONNECTED");
+                }
+
+                debug("Calling StartMatching...");
+
+                await connection.invoke("StartMatching");
+
+                debug("StartMatching completed");
+
+            }
+            catch (error) {
+
+                console.error(error);
+
+                debug("ERROR: " + error);
+
+                statusText.textContent =
+                    "Connection error";
+
+                statusMessage.textContent =
+                    "Something went wrong. Check the debug message below.";
+
+                startButton.disabled = false;
+                startButton.textContent = "Try Again";
+            }
+
+        });
+
+    </script>
+}

@@ -1,8 +1,12 @@
+using ChagolTalk.Hubs;
 using ChagolTalk.Data;
+using ChagolTalk.Interfaces;
 using ChagolTalk.Models;
 using ChagolTalk.Models.Identity;
+using ChagolTalk.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,8 +34,13 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/Home/Index";
 });
 
+builder.Services.AddSingleton<IMatchingService, MatchingService>();
+builder.Services.AddSignalR();
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -50,6 +59,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
+
+app.MapHub<ChatHub>("/chatHub");
 
 app.MapControllerRoute(
     name: "default",
