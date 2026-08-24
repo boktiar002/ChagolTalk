@@ -170,12 +170,30 @@
 
     // ---------- SIGNALR ----------
 
+    // See chat.js for why this isn't the default retry policy -- free-tier
+    // hosting can take 50s+ to wake up, longer than SignalR's default
+    // ~42s retry window.
+    class ResilientRetryPolicy {
+        nextRetryDelayInMilliseconds(retryContext) {
+            if (retryContext.elapsedMilliseconds > 5 * 60 * 1000) return null;
+
+            const delays = [0, 2000, 5000, 10000];
+            return delays[Math.min(retryContext.previousRetryCount, delays.length - 1)];
+        }
+    }
+
     const connection = new signalR.HubConnectionBuilder()
         .withUrl("/chatHub")
-        .withAutomaticReconnect()
+        .withAutomaticReconnect(new ResilientRetryPolicy())
         .build();
 
-    connection.start().catch((error) => console.error("SignalR connect error:", error));
+    function connectSignalR() {
+        if (connection.state !== signalR.HubConnectionState.Disconnected) return;
+        connection.start().catch((error) => console.error("SignalR connect error:", error));
+    }
+
+    connectSignalR();
+    connection.onclose(() => setTimeout(connectSignalR, 5000));
 
     connection.on("OnlineCount", (count) => {
         if (onlineCountEl) onlineCountEl.textContent = count;

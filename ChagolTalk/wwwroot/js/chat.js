@@ -59,9 +59,24 @@
 
     // ---------- SIGNALR ----------
 
+    // Free-tier hosting (Render et al.) can take 50s+ to wake a sleeping
+    // instance or recover from a restart. SignalR's default retry policy
+    // gives up after ~42s (0s, 2s, 10s, 30s), which is shorter than that --
+    // so mid-call users would get stuck on a stale "disconnected" banner
+    // even though the server comes back seconds later. This keeps retrying
+    // for several minutes instead, quick at first then settling at 10s.
+    class ResilientRetryPolicy {
+        nextRetryDelayInMilliseconds(retryContext) {
+            if (retryContext.elapsedMilliseconds > 5 * 60 * 1000) return null;
+
+            const delays = [0, 2000, 5000, 10000];
+            return delays[Math.min(retryContext.previousRetryCount, delays.length - 1)];
+        }
+    }
+
     const connection = new signalR.HubConnectionBuilder()
         .withUrl("/chatHub")
-        .withAutomaticReconnect()
+        .withAutomaticReconnect(new ResilientRetryPolicy())
         .build();
 
     function setStatus(text, tone) {
@@ -83,6 +98,11 @@
     }
 
     async function startConnection() {
+        // Guards against onclose's fallback retry firing while a reconnect
+        // (or another startConnection call) is already in flight -- calling
+        // .start() on a non-Disconnected connection throws.
+        if (connection.state !== signalR.HubConnectionState.Disconnected) return;
+
         try {
             setStatus("Connecting...", "warn");
             await connection.start();
@@ -101,7 +121,15 @@
         await joinConversation();
     });
 
-    connection.onclose(() => setStatus("Disconnected", "danger"));
+    connection.onclose(() => {
+        setStatus("Disconnected", "danger");
+
+        // withAutomaticReconnect gives up once ResilientRetryPolicy returns
+        // null; onclose fires at that point too, so this is the fallback
+        // that keeps trying rather than leaving the user stuck until they
+        // manually refresh.
+        setTimeout(startConnection, 5000);
+    });
 
     connection.on("JoinedConversation", (id, partnerName, mode, sharedInterests) => {
         setStatus("Connected", null);
