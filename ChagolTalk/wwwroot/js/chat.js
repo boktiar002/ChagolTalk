@@ -10,6 +10,7 @@
 
     const root = document.getElementById("chatRoot");
     const conversationId = root.dataset.conversationId;
+    const requestToken = root.dataset.requestToken;
 
     // ---------- DOM ----------
 
@@ -267,7 +268,10 @@
 
     // ---------- ENDING ----------
 
+    let conversationEnded = false;
+
     function showEndedScreen(message) {
+        conversationEnded = true;
         messages.style.display = "none";
         composerWrap.style.display = "none";
         endButton.style.display = "none";
@@ -278,6 +282,7 @@
         endedScreen.style.display = "flex";
         endedMessage.textContent = message;
         setStatus("Conversation ended", "danger");
+        reconnectBanner.classList.remove("show");
 
         cleanupVoiceCall();
         callScreen.style.display = "none";
@@ -506,6 +511,7 @@
             const response = await fetch("/Chat/IceServers");
             const data = await response.json();
             cachedIceServers = data.iceServers;
+            console.log("[WebRTC] ICE servers loaded:", cachedIceServers);
         } catch (error) {
             console.error("Could not load ICE servers, falling back to STUN only.", error);
             cachedIceServers = [{ urls: "stun:stun.l.google.com:19302" }];
@@ -522,13 +528,31 @@
             peerConnection = new RTCPeerConnection({ iceServers });
 
             peerConnection.onicecandidate = async (event) => {
-                if (!event.candidate) return;
+                if (!event.candidate) {
+                    console.log("[WebRTC] ICE gathering complete");
+                    return;
+                }
+
+                console.log("[WebRTC] local ICE candidate:", event.candidate.type, event.candidate.protocol, event.candidate.address);
 
                 await connection.invoke(
                     "SendIceCandidate",
                     conversationId,
                     JSON.stringify(event.candidate)
                 );
+            };
+
+            peerConnection.onicegatheringstatechange = () => {
+                console.log("[WebRTC] ICE gathering state:", peerConnection.iceGatheringState);
+            };
+
+            peerConnection.oniceconnectionstatechange = () => {
+                console.log("[WebRTC] ICE connection state:", peerConnection.iceConnectionState);
+
+                if (peerConnection.iceConnectionState === "failed") {
+                    console.warn("[WebRTC] ICE failed -- attempting restart");
+                    peerConnection.restartIce();
+                }
             };
 
             localStream.getTracks().forEach((track) => peerConnection.addTrack(track, localStream));
@@ -546,6 +570,7 @@
 
             peerConnection.onconnectionstatechange = () => {
                 const state = peerConnection.connectionState;
+                console.log("[WebRTC] connection state:", state);
 
                 if (state === "connected") {
                     callStatus.textContent = "Connected";
@@ -904,6 +929,21 @@
     connection.on("VoiceCallEnded", () => {
         cleanupVoiceCall();
         showCallEndedScreen("The other user ended the voice call.");
+    });
+
+    // ---------- LEAVE ON TAB CLOSE ----------
+    // A SignalR invoke can't be trusted to finish before the page dies mid
+    // unload, so this is a plain HTTP fallback via sendBeacon (fire-and-
+    // forget, survives navigation) that ends the conversation server-side.
+
+    window.addEventListener("pagehide", () => {
+        if (conversationEnded || !requestToken) return;
+
+        const formData = new FormData();
+        formData.append("id", conversationId);
+        formData.append("__RequestVerificationToken", requestToken);
+
+        navigator.sendBeacon("/Chat/LeaveOnUnload", formData);
     });
 
     // ---------- START ----------

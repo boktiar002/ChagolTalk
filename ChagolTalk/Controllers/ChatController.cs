@@ -1,4 +1,5 @@
 using ChagolTalk.Data;
+using ChagolTalk.Hubs;
 using ChagolTalk.Interfaces;
 using ChagolTalk.Models.Enums;
 using ChagolTalk.Models.Identity;
@@ -6,6 +7,7 @@ using ChagolTalk.Options;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -19,19 +21,22 @@ namespace ChagolTalk.Controllers
         private readonly IPresenceTracker _presence;
         private readonly IMatchingService _matchingService;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IHubContext<ChatHub> _hubContext;
 
         public ChatController(
             ApplicationDbContext context,
             IOptions<TurnServerOptions> turnOptions,
             IPresenceTracker presence,
             IMatchingService matchingService,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            IHubContext<ChatHub> hubContext)
         {
             _context = context;
             _turnOptions = turnOptions.Value;
             _presence = presence;
             _matchingService = matchingService;
             _userManager = userManager;
+            _hubContext = hubContext;
         }
 
         public async Task<IActionResult> Start(int? auto)
@@ -116,6 +121,42 @@ namespace ChagolTalk.Controllers
             }
 
             return Json(new { iceServers = servers });
+        }
+
+        /// <summary>
+        /// Fired via navigator.sendBeacon when the tab closes/navigates away
+        /// mid-conversation. beforeunload can't reliably await a SignalR
+        /// invoke before the page dies, so this is a plain HTTP fallback
+        /// that ends the conversation the same way the hub does.
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> LeaveOnUnload(Guid id)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+                return Ok();
+
+            var conversation = await _context.Conversations
+                .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (conversation == null ||
+                conversation.Status == ConversationStatus.Ended ||
+                (conversation.User1Id != userId && conversation.User2Id != userId))
+            {
+                return Ok();
+            }
+
+            conversation.Status = ConversationStatus.Ended;
+            conversation.EndedAt = DateTime.UtcNow;
+            conversation.EndedByUserId = userId;
+
+            await _context.SaveChangesAsync();
+
+            await _hubContext.Clients.Group(id.ToString()).SendAsync("ConversationEnded");
+
+            return Ok();
         }
     }
 }

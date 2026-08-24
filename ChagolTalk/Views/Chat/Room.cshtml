@@ -1,9 +1,12 @@
+@using Microsoft.AspNetCore.Antiforgery
+@inject IAntiforgery Xsrf
 @{
     ViewData["Title"] = "Chat";
     var conversationId = ViewBag.ConversationId;
+    var requestToken = Xsrf.GetAndStoreTokens(Context).RequestToken;
 }
 
-<div id="chatRoot" class="chat-page" data-conversation-id="@conversationId">
+<div id="chatRoot" class="chat-page" data-conversation-id="@conversationId" data-request-token="@requestToken">
 
     <header class="chat-topbar">
 
