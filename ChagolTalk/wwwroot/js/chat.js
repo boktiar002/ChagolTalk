@@ -71,6 +71,23 @@
     const cancelReportButton = document.getElementById("cancelReportButton");
     const confirmReportButton = document.getElementById("confirmReportButton");
 
+    // ---------- SEARCHING SOUND ----------
+    // Same file as the lobby -- plays while re-queuing via Skip/Find Another,
+    // stops the moment a match lands.
+
+    const searchingSound = new Audio("/sounds/magiaz-goat-411846.mp3");
+    searchingSound.loop = true;
+
+    function playSearchingSound() {
+        searchingSound.currentTime = 0;
+        searchingSound.play().catch((error) => console.error("Searching sound error:", error));
+    }
+
+    function stopSearchingSound() {
+        searchingSound.pause();
+        searchingSound.currentTime = 0;
+    }
+
     // ---------- SIGNALR ----------
 
     // Free-tier hosting (Render et al.) can take 50s+ to wake a sleeping
@@ -281,6 +298,7 @@
     });
 
     connection.on("MatchFound", (newConversationId) => {
+        stopSearchingSound();
         window.location.href = "/Chat/Room?id=" + newConversationId;
     });
 
@@ -299,6 +317,7 @@
         endedIcon.textContent = "👋";
         cancelSkipButton.style.display = "none";
         reportFromEndedButton.style.display = "";
+        stopSearchingSound();
     }
 
     connection.on("MatchingBlocked", (reason) => {
@@ -321,6 +340,7 @@
 
     findAnotherButton.addEventListener("click", async () => {
         try {
+            playSearchingSound();
             await enterFindingUI();
 
             const prefs = readStoredPreferences();
@@ -339,6 +359,7 @@
     skipButton.addEventListener("click", async () => {
         try {
             skipButton.disabled = true;
+            playSearchingSound();
 
             if (peerConnection) {
                 try {

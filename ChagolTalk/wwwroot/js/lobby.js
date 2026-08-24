@@ -29,6 +29,23 @@
     const onlineCountEl = document.getElementById("onlineCount");
     const estimatedWaitEl = document.getElementById("estimatedWait");
 
+    // ---------- SEARCHING SOUND ----------
+
+    const searchingSound = new Audio("/sounds/magiaz-goat-411846.mp3");
+    searchingSound.loop = true;
+
+    function playSearchingSound() {
+        searchingSound.currentTime = 0;
+        // Browsers can reject play() if it's not tied closely enough to a
+        // user gesture -- not fatal, just no sound that time.
+        searchingSound.play().catch((error) => console.error("Searching sound error:", error));
+    }
+
+    function stopSearchingSound() {
+        searchingSound.pause();
+        searchingSound.currentTime = 0;
+    }
+
     // ---------- STATE ----------
 
     let selectedMode = root.dataset.preferredMode ? root.dataset.preferredMode.toLowerCase() : "voice";
@@ -239,6 +256,7 @@
         searchingState.classList.remove("show");
         startButton.disabled = false;
         startButton.textContent = "Start Chatting";
+        stopSearchingSound();
     }
 
     connection.on("WaitingForMatch", (waitingCount, estimatedWaitSeconds) => {
@@ -260,6 +278,7 @@
             /* sessionStorage unavailable — "find another" from the room will just use defaults */
         }
 
+        stopSearchingSound();
         stopMicStream();
         window.location.href = "/Chat/Room?id=" + conversationId;
     });
@@ -278,6 +297,7 @@
         hideError();
         startButton.disabled = true;
         startButton.textContent = "Connecting...";
+        playSearchingSound();
 
         try {
             await ensureConnected();
