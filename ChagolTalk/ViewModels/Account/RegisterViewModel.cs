@@ -10,7 +10,7 @@ namespace ChagolTalk.ViewModels.Account
 
         [Required]
         [DataType(DataType.Password)]
-        [StringLength(100, MinimumLength = 8)]
+        [StringLength(100, MinimumLength = 6)]
         public string Password { get; set; } = string.Empty;
 
         [Required]

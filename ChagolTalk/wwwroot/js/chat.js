@@ -35,6 +35,7 @@
     const findAnotherButton = document.getElementById("findAnotherButton");
     const reportFromEndedButton = document.getElementById("reportFromEndedButton");
 
+    const callLaunchArea = document.getElementById("callLaunchArea");
     const startCallButton = document.getElementById("startCallButton");
     const callScreen = document.getElementById("callScreen");
     const callContent = document.getElementById("callContent");
@@ -50,6 +51,14 @@
     const callEndedState = document.getElementById("callEndedState");
     const callEndedMessage = document.getElementById("callEndedMessage");
     const closeCallButton = document.getElementById("closeCallButton");
+    const minimizeCallButton = document.getElementById("minimizeCallButton");
+
+    const callBar = document.getElementById("callBar");
+    const callBarName = document.getElementById("callBarName");
+    const callBarTimer = document.getElementById("callBarTimer");
+    const callBarMuteButton = document.getElementById("callBarMuteButton");
+    const callBarExpandButton = document.getElementById("callBarExpandButton");
+    const callBarEndButton = document.getElementById("callBarEndButton");
 
     const reportModal = document.getElementById("reportModal");
     const reportReasonButtons = Array.from(document.querySelectorAll(".report-reason"));
@@ -241,6 +250,7 @@
         composerWrap.style.display = "none";
         endButton.style.display = "none";
         if (reportButton) reportButton.style.display = "none";
+        callLaunchArea.style.display = "none";
 
         endedScreen.style.display = "flex";
         endedMessage.textContent = message;
@@ -482,12 +492,15 @@
         callStartedAt = Date.now();
         callTimer.textContent = "00:00";
         callTimer.style.display = "block";
+        callBarTimer.textContent = "00:00";
 
         callTimerInterval = setInterval(() => {
             callSeconds++;
             const minutes = Math.floor(callSeconds / 60);
             const seconds = callSeconds % 60;
-            callTimer.textContent = String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+            const text = String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+            callTimer.textContent = text;
+            callBarTimer.textContent = text;
         }, 1000);
     }
 
@@ -507,6 +520,7 @@
         stopCallTimer();
         callTimer.style.display = "none";
         callStartedAt = null;
+        callBar.classList.remove("show");
 
         if (localStream) {
             localStream.getTracks().forEach((track) => track.stop());
@@ -526,6 +540,8 @@
 
         remoteDescriptionSet = false;
         pendingIceCandidates = [];
+        isMuted = false;
+        setMuteIcon();
     }
 
     function resetCallScreenForNextCall() {
@@ -534,25 +550,30 @@
         muteCallButton.style.display = "";
         endCallButton.style.display = "";
         callScreen.style.display = "none";
+        callBar.classList.remove("show");
+        callLaunchArea.style.display = "";
         startCallButton.disabled = false;
     }
 
     startCallButton.addEventListener("click", async () => {
         try {
             startCallButton.disabled = true;
+            callLaunchArea.style.display = "none";
             callScreen.style.display = "flex";
             callStatus.textContent = "Calling...";
+            callBarName.textContent = strangerName.textContent;
 
             await setupVoiceConnection();
             await connection.invoke("StartVoiceCall", conversationId);
         } catch (error) {
             console.error("Start voice call error:", error);
             callScreen.style.display = "none";
+            callLaunchArea.style.display = "";
             startCallButton.disabled = false;
         }
     });
 
-    endCallButton.addEventListener("click", async () => {
+    async function endCall() {
         try {
             await connection.invoke("EndVoiceCall", conversationId, currentCallDurationSeconds());
             cleanupVoiceCall();
@@ -560,16 +581,43 @@
         } catch (error) {
             console.error("End voice call error:", error);
         }
-    });
+    }
+
+    endCallButton.addEventListener("click", endCall);
+    callBarEndButton.addEventListener("click", endCall);
 
     let isMuted = false;
 
-    muteCallButton.addEventListener("click", () => {
+    function setMuteIcon() {
+        const icon = isMuted ? "🔇" : "🎙️";
+        muteCallButton.textContent = icon;
+        callBarMuteButton.textContent = icon;
+    }
+
+    function toggleMute() {
         if (!localStream) return;
 
         isMuted = !isMuted;
         localStream.getAudioTracks().forEach((track) => (track.enabled = !isMuted));
-        muteCallButton.textContent = isMuted ? "🔇" : "🎙️";
+        setMuteIcon();
+    }
+
+    muteCallButton.addEventListener("click", toggleMute);
+    callBarMuteButton.addEventListener("click", toggleMute);
+
+    // ---------- MINIMIZE / EXPAND ----------
+    // Lets the call keep running (audio is unaffected either way, since it's
+    // peer-to-peer) while the user drops back into the full chat view.
+
+    minimizeCallButton.addEventListener("click", () => {
+        callBarName.textContent = callName.textContent;
+        callScreen.style.display = "none";
+        callBar.classList.add("show");
+    });
+
+    callBarExpandButton.addEventListener("click", () => {
+        callBar.classList.remove("show");
+        callScreen.style.display = "flex";
     });
 
     connection.on("IncomingVoiceCall", () => {
@@ -579,8 +627,10 @@
     acceptCallButton.addEventListener("click", async () => {
         incomingCallScreen.style.display = "none";
         resetCallScreenForNextCall();
+        callLaunchArea.style.display = "none";
         callScreen.style.display = "flex";
         callStatus.textContent = "Connecting...";
+        callBarName.textContent = strangerName.textContent;
 
         try {
             await setupVoiceConnection();
@@ -590,6 +640,7 @@
         } catch (error) {
             console.error("Accept call error:", error);
             callScreen.style.display = "none";
+            callLaunchArea.style.display = "";
         }
     });
 
@@ -607,11 +658,14 @@
         cleanupVoiceCall();
         setTimeout(() => {
             callScreen.style.display = "none";
+            callLaunchArea.style.display = "";
             startCallButton.disabled = false;
         }, 1200);
     });
 
     function showCallEndedScreen(message) {
+        callBar.classList.remove("show");
+        callScreen.style.display = "flex";
         callContent.style.display = "none";
         callEndedState.style.display = "flex";
         callEndedMessage.textContent = message;

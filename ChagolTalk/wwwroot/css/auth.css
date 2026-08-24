@@ -95,13 +95,6 @@
     padding-left: 12px;
 }
 
-.password-strength {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--primary);
-    margin-top: 8px;
-}
-
 textarea.form-control {
     resize: none;
 }

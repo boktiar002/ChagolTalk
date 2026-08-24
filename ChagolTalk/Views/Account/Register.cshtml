@@ -52,20 +52,13 @@
                     <input asp-for="Password"
                            id="password"
                            class="form-control"
-                           placeholder="Password" />
+                           placeholder="At least 6 characters" />
 
                     <button type="button"
                             id="togglePassword"
                             class="password-toggle">
                         👁
                     </button>
-
-                </div>
-
-                <div id="passwordStrength"
-                     class="password-strength mt-2">
-
-                    Weak
 
                 </div>
 
@@ -123,7 +116,6 @@
 
             const password = document.querySelector('input[name="Password"]');
             const toggle = document.getElementById("togglePassword");
-            const indicator = document.getElementById("passwordStrength");
 
             toggle.addEventListener("click", function() {
 
@@ -131,30 +123,6 @@
                     password.type === "password"
                         ? "text"
                         : "password";
-
-            });
-
-            password.addEventListener("input", function() {
-
-                let score = 0;
-
-                const value = password.value;
-
-                if (value.length >= 8) score++;
-                if (/[A-Z]/.test(value)) score++;
-                if (/[0-9]/.test(value)) score++;
-                if (/[^A-Za-z0-9]/.test(value)) score++;
-
-                const levels = [
-                    { text: "Weak", color: "#ef4444" },
-                    { text: "Fair", color: "#f59e0b" },
-                    { text: "Good", color: "#3b82f6" },
-                    { text: "Strong", color: "#22c55e" },
-                    { text: "Excellent", color: "#10b981" }
-                ];
-
-                indicator.innerHTML = levels[score].text;
-                indicator.style.color = levels[score].color;
 
             });
 

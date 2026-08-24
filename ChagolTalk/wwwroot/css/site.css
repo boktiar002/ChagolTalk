@@ -15,6 +15,10 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    /* Removes the grey flash Android/iOS paint on tap, and skips the
+       ~300ms double-tap-to-zoom delay on interactive elements so the app
+       feels native rather than like a scaled-up desktop site. */
+    -webkit-tap-highlight-color: transparent;
 }
 
 html {
@@ -28,6 +32,14 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+}
+
+button,
+.btn,
+a,
+input[type="button"],
+input[type="submit"] {
+    touch-action: manipulation;
 }
 
 .ct-main {
@@ -44,6 +56,30 @@ body {
     position: sticky;
     top: 0;
     z-index: 999;
+    padding: 14px 0;
+}
+
+.ct-navbar .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    row-gap: 10px;
+}
+
+@media (max-width: 480px) {
+    .ct-navbar {
+        padding: 11px 0;
+    }
+
+    .navbar-brand {
+        font-size: 21px;
+    }
+
+    .ct-navbar .btn {
+        padding: 9px 14px;
+        font-size: 13px;
+    }
 }
 
 .navbar-brand {

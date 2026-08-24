@@ -46,7 +46,7 @@
         Stranger's connection dropped &mdash; waiting for them to come back...
     </div>
 
-    <div class="call-launch-area">
+    <div id="callLaunchArea" class="call-launch-area">
         <button id="startCallButton" class="start-call-button">
             <span class="call-icon">📞</span>
 
@@ -57,8 +57,29 @@
         </button>
     </div>
 
+    <!-- MINIMIZED CALL BAR (shown while a call is minimized so text chat stays usable) -->
+    <div id="callBar" class="call-bar">
+
+        <div class="call-bar-info">
+            <span class="call-bar-dot"></span>
+            <span class="call-bar-name" id="callBarName">Stranger</span>
+            <span class="call-bar-timer" id="callBarTimer">00:00</span>
+        </div>
+
+        <div class="call-bar-actions">
+            <button id="callBarMuteButton" type="button" class="call-bar-button" title="Mute" aria-label="Mute">🎙️</button>
+            <button id="callBarExpandButton" type="button" class="call-bar-button" title="Expand call" aria-label="Expand call">⤢</button>
+            <button id="callBarEndButton" type="button" class="call-bar-button end-call" title="End call" aria-label="End call">☎</button>
+        </div>
+
+    </div>
+
     <!-- VOICE CALL SCREEN -->
     <div id="callScreen" class="call-screen" style="display:none;">
+
+        <button id="minimizeCallButton" type="button" class="minimize-call-button" title="Minimize and keep chatting" aria-label="Minimize call">
+            ⌄
+        </button>
 
         <div id="callContent" class="call-content">
 
