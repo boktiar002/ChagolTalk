@@ -1,49 +1,69 @@
-﻿@{
+@{
     ViewData["Title"] = "Welcome";
+    int onlineCount = ViewBag.OnlineCount ?? 0;
 }
 
 <section class="hero">
 
     <div class="hero-badge">
-
-        🚀 Real-Time Random Chat
-
+        🎙️ Voice-first random chat &middot;
+        <span style="color:var(--success);">&#9679;</span>
+        @onlineCount online now
     </div>
 
     <h1 class="hero-title">
-
-        Meet New People.<br>
-
-        Build Real Conversations.
-
+        Talk to a Stranger.<br>
+        Actually Talk.
     </h1>
 
     <p class="hero-description">
-
-        ChagolTalk connects strangers instantly through secure one-on-one conversations.
-        No endless scrolling. No fake followers.
-        Just meaningful chats.
-
+        ChagolTalk pairs you with a random person for a live voice conversation &mdash;
+        texting is there too, but the mic is the main event.
+        One click, one stranger, one real conversation.
     </p>
 
     <div class="hero-buttons">
 
-        <a asp-controller="Account"
-           asp-action="Register"
-           class="btn btn-primary btn-lg">
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a asp-controller="Chat" asp-action="Start" class="btn btn-primary btn-lg">
+                🎙️ Start Talking
+            </a>
+        }
+        else
+        {
+            <a asp-controller="Account" asp-action="Register" class="btn btn-primary btn-lg">
+                Create Free Account
+            </a>
 
-            Create Free Account
+            <a asp-controller="Account" asp-action="Login" class="btn btn-nav btn-lg">
+                Login
+            </a>
+        }
 
-        </a>
+    </div>
 
-        <a asp-controller="Account"
-           asp-action="Login"
-           class="btn btn-nav btn-lg">
+</section>
 
-            Login
 
-        </a>
+<section class="how-it-works">
 
+    <div class="step-card">
+        <div class="step-number">1</div>
+        <h3>Pick a mode</h3>
+        <p>Voice, text, or either. Add interests so we can find someone worth talking to.</p>
+    </div>
+
+    <div class="step-card">
+        <div class="step-number">2</div>
+        <h3>Get matched instantly</h3>
+        <p>Our matcher pairs you with someone online right now &mdash; usually in seconds.</p>
+    </div>
+
+    <div class="step-card">
+        <div class="step-number">3</div>
+        <h3>Talk, live</h3>
+        <p>One tap starts a real-time voice call. Not feeling it? Skip to the next stranger.</p>
     </div>
 
 </section>
@@ -52,51 +72,21 @@
 <section class="features">
 
     <div class="feature-card">
+        <div class="feature-icon">🎙️</div>
+        <h3>Real Voice Calls</h3>
+        <p>Peer-to-peer voice powered by WebRTC. Low latency, no recordings kept.</p>
+    </div>
 
-        <div class="feature-icon">
-            ⚡
-        </div>
-
+    <div class="feature-card">
+        <div class="feature-icon">⚡</div>
         <h3>Instant Matching</h3>
-
-        <p>
-
-            Find someone to chat with in seconds.
-
-        </p>
-
+        <p>Find someone to talk to in seconds, filtered by shared interests.</p>
     </div>
 
     <div class="feature-card">
-
-        <div class="feature-icon">
-            🔒
-        </div>
-
-        <h3>Private</h3>
-
-        <p>
-
-            Conversations disappear forever after they end.
-
-        </p>
-
-    </div>
-
-    <div class="feature-card">
-
-        <div class="feature-icon">
-            🌍
-        </div>
-
-        <h3>Worldwide</h3>
-
-        <p>
-
-            Talk to people from anywhere.
-
-        </p>
-
+        <div class="feature-icon">🔒</div>
+        <h3>Private by Design</h3>
+        <p>Conversations end permanently when you leave. Report anyone, anytime.</p>
     </div>
 
 </section>

@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using ChagolTalk.Interfaces;
 using ChagolTalk.Models.Entities;
 using ChagolTalk.Models.Enums;
@@ -6,114 +6,218 @@ using ChagolTalk.Models.Realtime;
 
 namespace ChagolTalk.Services
 {
+    /// <summary>
+    /// In-memory matchmaking queue.
+    ///
+    /// Single global lock around the "find or enqueue" decision keeps the
+    /// match atomic — two callers can never both dequeue the same waiting
+    /// user, which was possible with the old ConcurrentQueue.Any()+TryDequeue
+    /// combo (a classic check-then-act race).
+    /// </summary>
     public class MatchingService : IMatchingService
     {
-        private static readonly ConcurrentQueue<WaitingUser> WaitingUsers = new();
+        private readonly object _lock = new();
 
-        public Task<(Conversation? Conversation, string? MatchedConnectionId)>
-            FindMatchAsync(string userId, string connectionId)
+        private readonly List<WaitingUser> _waiting = new();
+
+        // Remembers the last partner for each user for a short cooldown so
+        // hitting "Find Another" twice in a row doesn't just bounce two
+        // people back to each other.
+        private readonly ConcurrentDictionary<string, (string PartnerId, DateTime At)> _lastPartner = new();
+
+        private static readonly TimeSpan RematchCooldown = TimeSpan.FromMinutes(2);
+
+        public int WaitingCount
         {
-            Console.WriteLine("========== MATCHING SERVICE ==========");
-            Console.WriteLine($"Incoming UserId: {userId}");
-            Console.WriteLine($"Incoming ConnectionId: {connectionId}");
-            Console.WriteLine($"Queue count BEFORE: {WaitingUsers.Count}");
+            get { lock (_lock) return _waiting.Count; }
+        }
 
-            // Prevent the same user from entering the queue twice.
-            if (WaitingUsers.Any(x => x.UserId == userId))
+        public MatchResult FindMatch(WaitingUser user)
+        {
+            lock (_lock)
             {
-                Console.WriteLine("User is already waiting in the queue.");
+                // Already queued — don't duplicate.
+                _waiting.RemoveAll(w => w.UserId == user.UserId);
 
-                return Task.FromResult(
-                    ((Conversation?)null, (string?)null));
-            }
+                var candidate = FindBestCandidate(user);
 
-            // Look for another waiting user.
-            while (WaitingUsers.TryDequeue(out var otherUser))
-            {
-                Console.WriteLine($"Dequeued UserId: {otherUser.UserId}");
-                Console.WriteLine($"Dequeued ConnectionId: {otherUser.ConnectionId}");
-
-                // Never match a user with themselves.
-                if (otherUser.UserId == userId)
+                if (candidate is null)
                 {
-                    Console.WriteLine("Dequeued user is the same user. Skipping.");
-                    continue;
+                    _waiting.Add(user);
+                    return MatchResult.Queued;
                 }
 
-                // Create the conversation.
+                _waiting.Remove(candidate);
+
+                var mode = ResolveMode(user.Mode, candidate.Mode);
+
+                var shared = user.Interests
+                    .Intersect(candidate.Interests, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
                 var conversation = new Conversation
                 {
                     Id = Guid.NewGuid(),
-
-                    // IMPORTANT:
-                    // Keeping your User1Id/User2Id exactly as they are.
-                    User1Id = otherUser.UserId,
-                    User2Id = userId,
-
+                    User1Id = candidate.UserId,
+                    User2Id = user.UserId,
                     StartedAt = DateTime.UtcNow,
-                    Status = ConversationStatus.Active
+                    Status = ConversationStatus.Active,
+                    Mode = mode,
+                    SharedInterests = shared.Count > 0 ? string.Join(",", shared) : null
                 };
 
-                Console.WriteLine("******** MATCH FOUND ********");
-                Console.WriteLine($"Conversation ID: {conversation.Id}");
-                Console.WriteLine($"User 1: {conversation.User1Id}");
-                Console.WriteLine($"User 2: {conversation.User2Id}");
-                Console.WriteLine(
-                    $"Matched Connection: {otherUser.ConnectionId}");
+                var now = DateTime.UtcNow;
+                _lastPartner[user.UserId] = (candidate.UserId, now);
+                _lastPartner[candidate.UserId] = (user.UserId, now);
 
-                return Task.FromResult(
-                    (
-                        (Conversation?)conversation,
-                        (string?)otherUser.ConnectionId
-                    ));
+                return new MatchResult
+                {
+                    Conversation = conversation,
+                    Partner = candidate,
+                    SharedInterestCount = shared.Count
+                };
             }
-
-            // Nobody was waiting, so add this user to the queue.
-            Console.WriteLine("No waiting user found.");
-            Console.WriteLine("Adding current user to queue.");
-
-            WaitingUsers.Enqueue(new WaitingUser
-            {
-                UserId = userId,
-                ConnectionId = connectionId,
-                JoinedAt = DateTime.UtcNow
-            });
-
-            Console.WriteLine($"Queue count AFTER: {WaitingUsers.Count}");
-            Console.WriteLine("======================================");
-
-            return Task.FromResult(
-                ((Conversation?)null, (string?)null));
         }
 
-        public Task LeaveQueueAsync(string userId)
+        /// <summary>
+        /// Picks the waiting user that best matches the requester. Must be
+        /// called while holding <see cref="_lock"/>.
+        /// </summary>
+        private WaitingUser? FindBestCandidate(WaitingUser user)
         {
-            Console.WriteLine($"Removing UserId from queue: {userId}");
+            WaitingUser? best = null;
+            var bestScore = int.MinValue;
 
-            var remainingUsers = new List<WaitingUser>();
-
-            while (WaitingUsers.TryDequeue(out var waitingUser))
+            foreach (var other in _waiting)
             {
-                if (waitingUser.UserId != userId)
+                if (other.UserId == user.UserId)
+                    continue;
+
+                if (!ModeCompatible(user.Mode, other.Mode))
+                    continue;
+
+                if (IsRecentPartner(user.UserId, other.UserId) && _waiting.Count > 1)
+                    continue;
+
+                var score = ScoreCandidate(user, other);
+
+                if (score > bestScore)
                 {
-                    remainingUsers.Add(waitingUser);
+                    bestScore = score;
+                    best = other;
                 }
             }
 
-            foreach (var waitingUser in remainingUsers)
+            // Nobody passed the recent-partner filter — fall back to anyone
+            // compatible rather than leaving the user stuck in queue forever.
+            if (best is null)
             {
-                WaitingUsers.Enqueue(waitingUser);
+                foreach (var other in _waiting)
+                {
+                    if (other.UserId == user.UserId)
+                        continue;
+
+                    if (!ModeCompatible(user.Mode, other.Mode))
+                        continue;
+
+                    var score = ScoreCandidate(user, other);
+
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        best = other;
+                    }
+                }
             }
 
-            Console.WriteLine(
-                $"Queue count after removal: {WaitingUsers.Count}");
+            return best;
+        }
 
-            return Task.CompletedTask;
+        private static int ScoreCandidate(WaitingUser user, WaitingUser other)
+        {
+            var score = 0;
+
+            var sharedInterests = user.Interests
+                .Intersect(other.Interests, StringComparer.OrdinalIgnoreCase)
+                .Count();
+
+            score += sharedInterests * 10;
+
+            if (!string.IsNullOrEmpty(user.Language) &&
+                string.Equals(user.Language, other.Language, StringComparison.OrdinalIgnoreCase))
+            {
+                score += 5;
+            }
+
+            // Longer-waiting users get priority when scores tie, handled by
+            // giving a small time bonus.
+            score += (int)Math.Min(other.WaitTime.TotalSeconds / 10, 20);
+
+            return score;
+        }
+
+        private bool IsRecentPartner(string userId, string otherUserId)
+        {
+            if (_lastPartner.TryGetValue(userId, out var last) &&
+                last.PartnerId == otherUserId &&
+                DateTime.UtcNow - last.At < RematchCooldown)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool ModeCompatible(ChatMode a, ChatMode b)
+        {
+            if (a == ChatMode.Any || b == ChatMode.Any)
+                return true;
+
+            return a == b;
+        }
+
+        private static ChatMode ResolveMode(ChatMode a, ChatMode b)
+        {
+            if (a == b)
+                return a;
+
+            return a == ChatMode.Any ? b : a;
+        }
+
+        public bool LeaveQueue(string userId)
+        {
+            lock (_lock)
+            {
+                return _waiting.RemoveAll(w => w.UserId == userId) > 0;
+            }
         }
 
         public bool IsWaiting(string userId)
         {
-            return WaitingUsers.Any(x => x.UserId == userId);
+            lock (_lock)
+            {
+                return _waiting.Any(w => w.UserId == userId);
+            }
+        }
+
+        public IReadOnlyList<WaitingUser> PruneStale(TimeSpan maxAge)
+        {
+            lock (_lock)
+            {
+                var stale = _waiting.Where(w => w.WaitTime > maxAge).ToList();
+
+                foreach (var user in stale)
+                    _waiting.Remove(user);
+
+                return stale;
+            }
+        }
+
+        public void RememberPairing(string userIdA, string userIdB)
+        {
+            var now = DateTime.UtcNow;
+            _lastPartner[userIdA] = (userIdB, now);
+            _lastPartner[userIdB] = (userIdA, now);
         }
     }
 }

@@ -1,90 +1,211 @@
-﻿using ChagolTalk.Data;
+using ChagolTalk.Data;
 using ChagolTalk.Interfaces;
+using ChagolTalk.Models.Entities;
 using ChagolTalk.Models.Enums;
+using ChagolTalk.Models.Realtime;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace ChagolTalk.Hubs
 {
+    /// <summary>
+    /// Real-time hub for matchmaking, text chat and WebRTC voice signalling.
+    ///
+    /// IMPORTANT: a new Hub instance is created per method invocation, so
+    /// nothing here can be stored as an instance field across calls. Anything
+    /// that must survive between calls for the same connection lives in
+    /// Context.Items; anything that must be shared across users lives in a
+    /// singleton service (IMatchingService, IPresenceTracker).
+    /// </summary>
     [Authorize]
     public class ChatHub : Hub
     {
+        private const int MaxMessageLength = 2000;
+        private static readonly TimeSpan MessageCooldown = TimeSpan.FromMilliseconds(400);
+
         private readonly IMatchingService _matchingService;
+        private readonly IPresenceTracker _presence;
         private readonly ApplicationDbContext _context;
 
         public ChatHub(
             IMatchingService matchingService,
+            IPresenceTracker presence,
             ApplicationDbContext context)
         {
             _matchingService = matchingService;
+            _presence = presence;
             _context = context;
         }
 
+        private string? UserId => Context.UserIdentifier;
+
         // ==========================================
-        // LOGOUT FROM CHAT
+        // CONNECTION LIFECYCLE
         // ==========================================
 
-        public async Task LogoutFromChat(Guid conversationId)
+        public override async Task OnConnectedAsync()
         {
-            var userId = Context.UserIdentifier;
+            var userId = UserId;
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var firstConnection = _presence.Connect(userId, Context.ConnectionId);
+
+                if (firstConnection)
+                {
+                    var user = await _context.Users.FindAsync(userId);
+
+                    if (user != null)
+                    {
+                        user.IsOnline = true;
+                        user.LastSeen = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+                    }
+
+                    await Clients.All.SendAsync("OnlineCount", _presence.OnlineCount);
+                }
+            }
+
+            await base.OnConnectedAsync();
+        }
+
+        public override async Task OnDisconnectedAsync(Exception? exception)
+        {
+            var userId = UserId;
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                _matchingService.LeaveQueue(userId);
+
+                var lastConnection = _presence.Disconnect(userId, Context.ConnectionId);
+
+                if (lastConnection)
+                {
+                    var user = await _context.Users.FindAsync(userId);
+
+                    if (user != null)
+                    {
+                        user.IsOnline = false;
+                        user.LastSeen = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+                    }
+
+                    await Clients.All.SendAsync("OnlineCount", _presence.OnlineCount);
+                }
+
+                // If they were mid-conversation, let the other side know so
+                // they are not left staring at a dead screen.
+                var activeConversation = await _context.Conversations
+                    .Where(c => c.Status == ConversationStatus.Active)
+                    .Where(c => c.User1Id == userId || c.User2Id == userId)
+                    .FirstOrDefaultAsync();
+
+                if (activeConversation != null)
+                {
+                    await Clients.OthersInGroup(activeConversation.Id.ToString())
+                        .SendAsync("StrangerDisconnected");
+                }
+            }
+
+            await base.OnDisconnectedAsync(exception);
+        }
+
+        // ==========================================
+        // MATCHMAKING
+        // ==========================================
+
+        /// <summary>
+        /// mode: "voice" | "text" | "any". interests: comma separated tags.
+        /// </summary>
+        public async Task StartMatching(string? mode, string? interests, string? language)
+        {
+            var userId = UserId;
 
             if (string.IsNullOrEmpty(userId))
                 return;
 
+            var user = await _context.Users.FindAsync(userId);
 
-            var conversation = await _context.Conversations
-                .FirstOrDefaultAsync(c => c.Id == conversationId);
-
-
-            if (conversation == null)
+            if (user == null)
                 return;
 
-
-            // Security check
-            if (conversation.User1Id != userId &&
-                conversation.User2Id != userId)
+            if (user.IsBanned)
             {
-                throw new HubException(
-                    "You are not a participant in this conversation.");
+                await Clients.Caller.SendAsync("MatchingBlocked", "Your account has been suspended.");
+                return;
             }
 
-
-            // Already ended
-            if (conversation.Status == ConversationStatus.Ended)
+            if (user.MutedUntil.HasValue && user.MutedUntil > DateTime.UtcNow)
+            {
+                var minutes = Math.Ceiling((user.MutedUntil.Value - DateTime.UtcNow).TotalMinutes);
+                await Clients.Caller.SendAsync("MatchingBlocked", $"You can start a new chat in {minutes} minute(s).");
                 return;
+            }
 
+            var waitingUser = new WaitingUser
+            {
+                UserId = userId,
+                ConnectionId = Context.ConnectionId,
+                DisplayName = user.DisplayName ?? "Stranger",
+                Mode = ParseMode(mode),
+                Language = language,
+                Interests = (interests ?? string.Empty)
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Take(10)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase)
+            };
 
-            // End conversation
-            conversation.Status =
-                ConversationStatus.Ended;
+            var result = _matchingService.FindMatch(waitingUser);
 
-            conversation.EndedAt =
-                DateTime.UtcNow;
+            if (!result.Matched)
+            {
+                await Clients.Caller.SendAsync("WaitingForMatch", _matchingService.WaitingCount);
+                return;
+            }
 
+            var conversation = result.Conversation!;
 
+            _context.Conversations.Add(conversation);
             await _context.SaveChangesAsync();
 
+            var partner = result.Partner!;
 
-            string groupName =
-                conversationId.ToString();
+            await Clients.Caller.SendAsync(
+                "MatchFound",
+                conversation.Id,
+                partner.DisplayName,
+                conversation.SharedInterests,
+                conversation.Mode.ToString());
 
-
-            // Tell the OTHER user.
-            await Clients.OthersInGroup(
-                groupName)
-                .SendAsync("ConversationEnded");
-
-
-            // Remove this connection from the group.
-            await Groups.RemoveFromGroupAsync(
-                Context.ConnectionId,
-                groupName);
-
-
-            Console.WriteLine(
-                $"SERVER: User {userId} logged out from conversation {conversationId}");
+            // Route by user, not the connection id captured while they were
+            // queued -- that connection may have gone away and been replaced
+            // by a reconnect, in which case Clients.Client(...) would silently
+            // send nowhere.
+            await Clients.User(partner.UserId).SendAsync(
+                "MatchFound",
+                conversation.Id,
+                waitingUser.DisplayName,
+                conversation.SharedInterests,
+                conversation.Mode.ToString());
         }
+
+        public Task CancelMatching()
+        {
+            var userId = UserId;
+
+            if (!string.IsNullOrEmpty(userId))
+                _matchingService.LeaveQueue(userId);
+
+            return Task.CompletedTask;
+        }
+
+        private static ChatMode ParseMode(string? mode) => mode?.ToLowerInvariant() switch
+        {
+            "voice" => ChatMode.Voice,
+            "text" => ChatMode.Text,
+            _ => ChatMode.Any
+        };
 
         // ==========================================
         // JOIN CONVERSATION
@@ -92,558 +213,336 @@ namespace ChagolTalk.Hubs
 
         public async Task JoinConversation(Guid conversationId)
         {
-            var userId = Context.UserIdentifier;
+            var userId = UserId;
 
             if (string.IsNullOrEmpty(userId))
                 throw new HubException("User is not authenticated.");
 
-
             var conversation = await _context.Conversations
                 .FirstOrDefaultAsync(c => c.Id == conversationId);
-
 
             if (conversation == null)
                 throw new HubException("Conversation not found.");
 
+            if (!conversation.HasParticipant(userId))
+                throw new HubException("You are not a participant in this conversation.");
 
-            // Make sure this user belongs to this conversation.
-            if (conversation.User1Id != userId &&
-                conversation.User2Id != userId)
-            {
-                throw new HubException(
-                    "You are not a participant in this conversation.");
-            }
-
-
-            // Don't allow joining an already-ended conversation.
             if (conversation.Status == ConversationStatus.Ended)
-            {
-                throw new HubException(
-                    "This conversation has already ended.");
-            }
+                throw new HubException("This conversation has already ended.");
 
+            var groupName = conversationId.ToString();
 
-            string groupName = conversationId.ToString();
+            await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
 
-
-            await Groups.AddToGroupAsync(
-                Context.ConnectionId,
-                groupName);
-
-
-            Console.WriteLine(
-                $"SERVER: {userId} joined conversation {conversationId}");
-
+            var partnerId = conversation.OtherUserId(userId);
+            var partner = await _context.Users.FindAsync(partnerId);
 
             await Clients.Caller.SendAsync(
                 "JoinedConversation",
-                conversationId);
+                conversationId,
+                partner?.DisplayName ?? "Stranger",
+                conversation.Mode.ToString(),
+                conversation.SharedInterests);
+
+            // Tell the other participant (if already in the room) that this
+            // side reconnected, so their UI can clear any "disconnected" banner.
+            await Clients.OthersInGroup(groupName).SendAsync("StrangerReconnected");
         }
 
-
         // ==========================================
-        // SEND MESSAGE
+        // TEXT MESSAGING
         // ==========================================
 
-        public async Task SendMessage(
-            Guid conversationId,
-            string message)
+        public async Task SendMessage(Guid conversationId, string message)
         {
-            var userId = Context.UserIdentifier;
+            var userId = UserId;
 
-            if (string.IsNullOrEmpty(userId))
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrWhiteSpace(message))
                 return;
 
+            message = message.Trim();
 
-            if (string.IsNullOrWhiteSpace(message))
+            if (message.Length > MaxMessageLength)
+                message = message[..MaxMessageLength];
+
+            if (!CheckAndUpdateRateLimit())
                 return;
-
-
-            // Prevent extremely large messages.
-            if (message.Length > 2000)
-                return;
-
 
             var conversation = await _context.Conversations
                 .FirstOrDefaultAsync(c => c.Id == conversationId);
 
+            if (conversation == null || conversation.Status == ConversationStatus.Ended)
+                return;
+
+            if (!conversation.HasParticipant(userId))
+                throw new HubException("You are not a participant in this conversation.");
+
+            var user = await _context.Users.FindAsync(userId);
+            var userName = user?.DisplayName ?? "Stranger";
+
+            _context.Messages.Add(new Message
+            {
+                Id = Guid.NewGuid(),
+                ConversationId = conversationId,
+                SenderId = userId,
+                Content = message,
+                Type = MessageType.Text
+            });
+
+            await _context.SaveChangesAsync();
+
+            var groupName = conversationId.ToString();
+            var sentAt = DateTime.UtcNow;
+
+            await Clients.GroupExcept(groupName, new[] { Context.ConnectionId })
+                .SendAsync("ReceiveMessage", userName, message, sentAt);
+
+            await Clients.Caller.SendAsync("ReceiveOwnMessage", userName, message, sentAt);
+        }
+
+        /// <summary>Simple per-connection throttle stored in Context.Items (survives across calls for this connection).</summary>
+        private bool CheckAndUpdateRateLimit()
+        {
+            var now = DateTime.UtcNow;
+
+            if (Context.Items.TryGetValue("LastMessageAt", out var lastObj) && lastObj is DateTime last)
+            {
+                if (now - last < MessageCooldown)
+                    return false;
+            }
+
+            Context.Items["LastMessageAt"] = now;
+            return true;
+        }
+
+        public async Task Typing(Guid conversationId, bool isTyping)
+        {
+            var userId = UserId;
+
+            if (string.IsNullOrEmpty(userId))
+                return;
+
+            await Clients.OthersInGroup(conversationId.ToString())
+                .SendAsync("StrangerTyping", isTyping);
+        }
+
+        // ==========================================
+        // ENDING / LEAVING
+        // ==========================================
+
+        public async Task EndConversation(Guid conversationId)
+        {
+            await EndConversationInternal(conversationId);
+        }
+
+        public async Task LogoutFromChat(Guid conversationId)
+        {
+            await EndConversationInternal(conversationId);
+        }
+
+        private async Task EndConversationInternal(Guid conversationId)
+        {
+            var userId = UserId;
+
+            if (string.IsNullOrEmpty(userId))
+                return;
+
+            var conversation = await _context.Conversations
+                .FirstOrDefaultAsync(c => c.Id == conversationId);
 
             if (conversation == null)
                 return;
 
+            if (!conversation.HasParticipant(userId))
+                throw new HubException("You are not a participant in this conversation.");
 
-            // Security check.
-            if (conversation.User1Id != userId &&
-                conversation.User2Id != userId)
-            {
-                throw new HubException(
-                    "You are not a participant in this conversation.");
-            }
-
-
-            // Don't allow messages after conversation ends.
             if (conversation.Status == ConversationStatus.Ended)
                 return;
 
+            conversation.Status = ConversationStatus.Ended;
+            conversation.EndedAt = DateTime.UtcNow;
+            conversation.EndedByUserId = userId;
 
-            string userName =
-                Context.User?.Identity?.Name
-                ?? "Stranger";
+            await _context.SaveChangesAsync();
 
+            await BumpConversationStats(conversation.User1Id);
+            await BumpConversationStats(conversation.User2Id);
 
-            string groupName =
-                conversationId.ToString();
+            await _context.SaveChangesAsync();
 
+            _matchingService.RememberPairing(conversation.User1Id, conversation.User2Id);
 
-            Console.WriteLine(
-                $"SERVER: Message from {userName}: {message}");
+            var groupName = conversationId.ToString();
 
+            // Only the OTHER participant gets "ConversationEnded" -- the
+            // person who clicked End already knows and updates their own UI
+            // locally once the invoke resolves.
+            await Clients.OthersInGroup(groupName).SendAsync("ConversationEnded");
 
-            // Send to everyone EXCEPT sender.
-            await Clients.GroupExcept(
-                groupName,
-                new[] { Context.ConnectionId })
-                .SendAsync(
-                    "ReceiveMessage",
-                    userName,
-                    message);
-
-
-            // Send back to sender.
-            await Clients.Caller.SendAsync(
-                "ReceiveOwnMessage",
-                userName,
-                message);
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
         }
+
+        private async Task BumpConversationStats(string userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+
+            if (user != null)
+                user.TotalConversations++;
+        }
+
+        public async Task LeaveConversation(Guid conversationId)
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, conversationId.ToString());
+        }
+
+        public async Task FindAnother(string? mode, string? interests, string? language)
+        {
+            await StartMatching(mode, interests, language);
+        }
+
         // ==========================================
-        // START VOICE CALL
+        // REPORTING
+        // ==========================================
+
+        public async Task SubmitReport(Guid conversationId, int reason, string? details)
+        {
+            var userId = UserId;
+
+            if (string.IsNullOrEmpty(userId))
+                return;
+
+            var conversation = await _context.Conversations
+                .FirstOrDefaultAsync(c => c.Id == conversationId);
+
+            if (conversation == null || !conversation.HasParticipant(userId))
+                return;
+
+            var reportedUserId = conversation.OtherUserId(userId);
+
+            var report = new Report
+            {
+                Id = Guid.NewGuid(),
+                ReporterId = userId,
+                ReportedUserId = reportedUserId,
+                ConversationId = conversationId,
+                Reason = Enum.IsDefined(typeof(ReportReason), reason) ? (ReportReason)reason : ReportReason.Other,
+                Details = string.IsNullOrWhiteSpace(details) ? null : details[..Math.Min(details.Length, 500)]
+            };
+
+            _context.Reports.Add(report);
+
+            var reportedUser = await _context.Users.FindAsync(reportedUserId);
+
+            if (reportedUser != null)
+            {
+                reportedUser.ReportCount++;
+
+                // Basic automatic moderation: enough reports and the account
+                // gets a cooldown from matching. Manual review still applies
+                // for bans.
+                if (reportedUser.ReportCount >= 5 && reportedUser.ReportCount % 5 == 0)
+                {
+                    reportedUser.MutedUntil = DateTime.UtcNow.AddHours(1);
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            await Clients.Caller.SendAsync("ReportSubmitted");
+        }
+
+        // ==========================================
+        // WEBRTC VOICE SIGNALLING
         // ==========================================
 
         public async Task StartVoiceCall(Guid conversationId)
         {
-            var userId = Context.UserIdentifier;
-
-            if (string.IsNullOrEmpty(userId))
+            if (!await IsActiveParticipant(conversationId))
                 return;
 
-            var conversation = await _context.Conversations
-                .FirstOrDefaultAsync(c => c.Id == conversationId);
-
-            if (conversation == null)
-                return;
-
-            // Security check
-            if (conversation.User1Id != userId &&
-                conversation.User2Id != userId)
-            {
-                throw new HubException(
-                    "You are not a participant in this conversation.");
-            }
-
-            // Don't allow calls after conversation ended.
-            if (conversation.Status == ConversationStatus.Ended)
-                return;
-
-            string groupName = conversationId.ToString();
-
-            // Tell the OTHER participant that a call is coming.
-            await Clients.OthersInGroup(groupName)
-                .SendAsync("IncomingVoiceCall");
-
-            Console.WriteLine(
-                $"VOICE CALL: {userId} started a call in {conversationId}");
+            await Clients.OthersInGroup(conversationId.ToString()).SendAsync("IncomingVoiceCall");
         }
 
-        // ==========================================
-        // END CONVERSATION
-        // ==========================================
-
-        public async Task EndConversation(
-            Guid conversationId)
+        public async Task DeclineVoiceCall(Guid conversationId)
         {
-            var userId = Context.UserIdentifier;
-
-            if (string.IsNullOrEmpty(userId))
+            if (string.IsNullOrEmpty(UserId))
                 return;
-
 
             var conversation = await _context.Conversations
                 .FirstOrDefaultAsync(c => c.Id == conversationId);
 
-
-            if (conversation == null)
+            if (conversation == null || !conversation.HasParticipant(UserId!))
                 return;
 
+            await Clients.OthersInGroup(conversationId.ToString()).SendAsync("VoiceCallDeclined");
+        }
 
-            // Security check.
-            if (conversation.User1Id != userId &&
-                conversation.User2Id != userId)
-            {
-                throw new HubException(
-                    "You are not a participant in this conversation.");
-            }
-
-
-            // Already ended.
-            if (conversation.Status == ConversationStatus.Ended)
+        public async Task SendVoiceOffer(Guid conversationId, string offer)
+        {
+            if (!await IsActiveParticipant(conversationId))
                 return;
 
+            await Clients.OthersInGroup(conversationId.ToString()).SendAsync("ReceiveVoiceOffer", offer);
+        }
 
-            // Mark conversation as ended.
-            conversation.Status =
-                ConversationStatus.Ended;
+        public async Task SendVoiceAnswer(Guid conversationId, string answer)
+        {
+            if (!await IsActiveParticipant(conversationId))
+                return;
 
-            conversation.EndedAt =
-                DateTime.UtcNow;
+            await Clients.OthersInGroup(conversationId.ToString()).SendAsync("ReceiveVoiceAnswer", answer);
+        }
 
+        public async Task SendIceCandidate(Guid conversationId, string candidate)
+        {
+            if (!await IsActiveParticipant(conversationId))
+                return;
+
+            await Clients.OthersInGroup(conversationId.ToString()).SendAsync("ReceiveIceCandidate", candidate);
+        }
+
+        public async Task EndVoiceCall(Guid conversationId, int durationSeconds)
+        {
+            var userId = UserId;
+
+            if (string.IsNullOrEmpty(userId))
+                return;
+
+            var conversation = await _context.Conversations
+                .FirstOrDefaultAsync(c => c.Id == conversationId);
+
+            if (conversation == null || !conversation.HasParticipant(userId))
+                return;
+
+            conversation.HadVoiceCall = true;
+            conversation.VoiceSeconds += Math.Max(0, durationSeconds);
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user != null)
+                user.TotalVoiceSeconds += Math.Max(0, durationSeconds);
 
             await _context.SaveChangesAsync();
 
-
-            string groupName =
-                conversationId.ToString();
-
-
-            // Tell ONLY the other user.
-            // The person who clicked End should NOT
-            // receive the "other user left" notification.
-            await Clients.OthersInGroup(
-                groupName)
-                .SendAsync(
-                    "ConversationEnded");
-
-
-            // Remove current user from the group.
-            await Groups.RemoveFromGroupAsync(
-                Context.ConnectionId,
-                groupName);
-
-
-            Console.WriteLine(
-                $"SERVER: Conversation {conversationId} ended by {userId}");
+            await Clients.OthersInGroup(conversationId.ToString()).SendAsync("VoiceCallEnded");
         }
 
-
-        // ==========================================
-        // FIND ANOTHER STRANGER
-        // ==========================================
-
-        public async Task FindAnother()
+        private async Task<bool> IsActiveParticipant(Guid conversationId)
         {
-            var userId = Context.UserIdentifier;
+            var userId = UserId;
 
             if (string.IsNullOrEmpty(userId))
-                return;
-
-
-            var result = await _matchingService.FindMatchAsync(
-                userId,
-                Context.ConnectionId);
-
-
-            // Nobody available yet.
-            if (result.Conversation == null)
-            {
-                await Clients.Caller.SendAsync(
-                    "WaitingForMatch");
-
-                return;
-            }
-
-
-            var conversation =
-                result.Conversation;
-
-
-            var matchedConnectionId =
-                result.MatchedConnectionId;
-
-
-            // Save the new conversation.
-            var existingConversation =
-                await _context.Conversations
-                    .FirstOrDefaultAsync(
-                        c => c.Id == conversation.Id);
-
-
-            if (existingConversation == null)
-            {
-                _context.Conversations.Add(
-                    conversation);
-
-                await _context.SaveChangesAsync();
-            }
-
-
-            // Tell current user.
-            await Clients.Caller.SendAsync(
-                "MatchFound",
-                conversation.Id);
-
-
-            // Tell matched user.
-            if (!string.IsNullOrEmpty(matchedConnectionId))
-            {
-                await Clients.Client(
-                    matchedConnectionId)
-                    .SendAsync(
-                        "MatchFound",
-                        conversation.Id);
-            }
-        }
-
-
-        // ==========================================
-        // LEAVE CONVERSATION
-        // ==========================================
-
-        public async Task LeaveConversation(
-            Guid conversationId)
-        {
-            string groupName =
-                conversationId.ToString();
-
-
-            await Groups.RemoveFromGroupAsync(
-                Context.ConnectionId,
-                groupName);
-
-
-            Console.WriteLine(
-                $"SERVER: {Context.UserIdentifier} left conversation {conversationId}");
-        }
-
-
-        // ==========================================
-        // START MATCHING
-        // ==========================================
-
-        public async Task StartMatching()
-        {
-            var userId =
-                Context.UserIdentifier;
-
-            if (string.IsNullOrEmpty(userId))
-                return;
-
-
-            var result =
-                await _matchingService.FindMatchAsync(
-                    userId,
-                    Context.ConnectionId);
-
-
-            if (result.Conversation == null)
-            {
-                await Clients.Caller.SendAsync(
-                    "WaitingForMatch");
-
-                return;
-            }
-
-
-            var conversation =
-                result.Conversation;
-
-
-            var matchedConnectionId =
-                result.MatchedConnectionId;
-
-
-            // ======================================
-            // SAVE CONVERSATION TO DATABASE
-            // ======================================
-
-            var existingConversation =
-                await _context.Conversations
-                    .FirstOrDefaultAsync(
-                        c => c.Id == conversation.Id);
-
-
-            if (existingConversation == null)
-            {
-                _context.Conversations.Add(
-                    conversation);
-
-                await _context.SaveChangesAsync();
-            }
-
-
-            // ======================================
-            // NOTIFY BOTH USERS
-            // ======================================
-
-            await Clients.Caller.SendAsync(
-                "MatchFound",
-                conversation.Id);
-
-
-            if (!string.IsNullOrEmpty(
-                    matchedConnectionId))
-            {
-                await Clients.Client(
-                    matchedConnectionId)
-                    .SendAsync(
-                        "MatchFound",
-                        conversation.Id);
-            }
-        }
-
-
-        // ==========================================
-        // DISCONNECT
-        // ==========================================
-
-        public override async Task OnDisconnectedAsync(Exception? exception)
-        {
-            var userId =
-                Context.UserIdentifier;
-
-
-            if (!string.IsNullOrEmpty(userId))
-            {
-                await _matchingService
-                    .LeaveQueueAsync(userId);
-            }
-
-
-            await base.OnDisconnectedAsync(
-                exception);
-        }
-        // ==========================================
-        // WEBRTC OFFER
-        // ==========================================
-
-        public async Task SendVoiceOffer(
-            Guid conversationId,
-            string offer)
-        {
-            var userId = Context.UserIdentifier;
-
-            if (string.IsNullOrEmpty(userId))
-                return;
+                return false;
 
             var conversation = await _context.Conversations
                 .FirstOrDefaultAsync(c => c.Id == conversationId);
 
-            if (conversation == null ||
-                conversation.Status == ConversationStatus.Ended)
-                return;
+            if (conversation == null || conversation.Status == ConversationStatus.Ended)
+                return false;
 
-            if (conversation.User1Id != userId &&
-                conversation.User2Id != userId)
-            {
-                throw new HubException(
-                    "You are not a participant in this conversation.");
-            }
+            if (!conversation.HasParticipant(userId))
+                throw new HubException("You are not a participant in this conversation.");
 
-            await Clients.OthersInGroup(
-                conversationId.ToString())
-                .SendAsync(
-                    "ReceiveVoiceOffer",
-                    offer);
+            return true;
         }
-
-
-        // ==========================================
-        // WEBRTC ANSWER
-        // ==========================================
-
-        public async Task SendVoiceAnswer(
-            Guid conversationId,
-            string answer)
-        {
-            var userId = Context.UserIdentifier;
-
-            if (string.IsNullOrEmpty(userId))
-                return;
-
-            var conversation = await _context.Conversations
-                .FirstOrDefaultAsync(c => c.Id == conversationId);
-
-            if (conversation == null ||
-                conversation.Status == ConversationStatus.Ended)
-                return;
-
-            if (conversation.User1Id != userId &&
-                conversation.User2Id != userId)
-            {
-                throw new HubException(
-                    "You are not a participant in this conversation.");
-            }
-
-            await Clients.OthersInGroup(
-                conversationId.ToString())
-                .SendAsync(
-                    "ReceiveVoiceAnswer",
-                    answer);
-        }
-
-
-        // ==========================================
-        // WEBRTC ICE CANDIDATE
-        // ==========================================
-
-        public async Task SendIceCandidate(
-            Guid conversationId,
-            string candidate)
-        {
-            var userId = Context.UserIdentifier;
-
-            if (string.IsNullOrEmpty(userId))
-                return;
-
-            var conversation = await _context.Conversations
-                .FirstOrDefaultAsync(c => c.Id == conversationId);
-
-            if (conversation == null ||
-                conversation.Status == ConversationStatus.Ended)
-                return;
-
-            if (conversation.User1Id != userId &&
-                conversation.User2Id != userId)
-            {
-                throw new HubException(
-                    "You are not a participant in this conversation.");
-            }
-
-            await Clients.OthersInGroup(
-                conversationId.ToString())
-                .SendAsync(
-                    "ReceiveIceCandidate",
-                    candidate);
-        }
-        // ==========================================
-        // END VOICE CALL
-        // ==========================================
-
-        public async Task EndVoiceCall(Guid conversationId)
-        {
-            var userId = Context.UserIdentifier;
-
-            if (string.IsNullOrEmpty(userId))
-                return;
-
-            var conversation = await _context.Conversations
-                .FirstOrDefaultAsync(c => c.Id == conversationId);
-
-            if (conversation == null)
-                return;
-
-            // Make sure the user belongs to this conversation.
-            if (conversation.User1Id != userId &&
-                conversation.User2Id != userId)
-            {
-                throw new HubException(
-                    "You are not a participant in this conversation.");
-            }
-
-            // Tell the other person that the voice call ended.
-            await Clients.OthersInGroup(
-                conversationId.ToString())
-                .SendAsync("VoiceCallEnded");
-        }
-
-
     }
 }

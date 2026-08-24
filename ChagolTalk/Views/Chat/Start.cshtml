@@ -1,143 +1,120 @@
-﻿@{
+@{
     ViewData["Title"] = "Find Someone";
+    string preferredMode = ViewBag.PreferredMode ?? "Voice";
+    string? interests = ViewBag.Interests;
+    string? language = ViewBag.Language;
+    int onlineCount = ViewBag.OnlineCount ?? 0;
+    int waitingCount = ViewBag.WaitingCount ?? 0;
 }
 
-<div class="text-center mt-5">
+<div id="lobbyRoot"
+     class="lobby-wrap"
+     data-preferred-mode="@preferredMode"
+     data-interests="@interests">
 
-    <h1 id="statusText">Ready?</h1>
+    <div class="lobby-card">
 
-    <p id="statusMessage">
-        Find a random person and start a conversation.
-    </p>
+        <div class="lobby-header">
+            <h1>Ready to talk?</h1>
+            <p>Pick how you want to connect, then meet a random stranger.</p>
 
-    <button id="startButton"
-            class="btn btn-primary btn-lg">
-        Start Chat
-    </button>
+            <div class="live-stats">
+                <span><span class="live-dot"></span> <span id="onlineCount">@onlineCount</span> online</span>
+                <span>🔎 <span id="waitingCount">@waitingCount</span> searching</span>
+            </div>
+        </div>
 
-    <div id="debugBox"
-         style="margin-top:30px; padding:15px; text-align:left;
-        background:#111827; color:#9ca3af;
-        border-radius:10px; font-family:monospace;">
-        Status: Page loaded
+        <div id="lobbyError" class="lobby-error"></div>
+
+        <div id="idleState" class="idle-state">
+
+            <label class="field-label">How do you want to chat?</label>
+
+            <div class="mode-picker">
+
+                <div class="mode-option" data-mode="voice">
+                    <div class="mode-icon">🎙️</div>
+                    <div class="mode-name">Voice</div>
+                    <div class="mode-desc">Talk live</div>
+                </div>
+
+                <div class="mode-option" data-mode="any">
+                    <div class="mode-icon">🎲</div>
+                    <div class="mode-name">Either</div>
+                    <div class="mode-desc">Voice or text</div>
+                </div>
+
+                <div class="mode-option" data-mode="text">
+                    <div class="mode-icon">⌨️</div>
+                    <div class="mode-name">Text only</div>
+                    <div class="mode-desc">Just typing</div>
+                </div>
+
+            </div>
+
+            <div id="micCheck" class="mic-check">
+                <div class="mic-check-icon">🎤</div>
+
+                <div class="mic-check-text">
+                    <strong>Microphone check</strong>
+                    <span id="micStatusText">Not requested yet</span>
+                </div>
+
+                <div class="mic-level">
+                    <div id="micLevelFill" class="mic-level-fill"></div>
+                </div>
+            </div>
+
+            <div class="interests-field">
+                <label class="field-label" for="interestInput">Interests (optional)</label>
+
+                <div class="interest-input-row">
+                    <input id="interestInput"
+                           type="text"
+                           class="form-control"
+                           placeholder="e.g. music, gaming, movies"
+                           maxlength="30" />
+
+                    <button id="addInterestButton" type="button">Add</button>
+                </div>
+
+                <div id="interestChips" class="interest-chips"></div>
+
+                <p class="field-hint">We'll try to match you with someone who shares an interest.</p>
+            </div>
+
+            <div class="interests-field">
+                <label class="field-label" for="languageInput">Preferred language (optional)</label>
+                <input id="languageInput"
+                       type="text"
+                       class="form-control"
+                       placeholder="e.g. English"
+                       value="@language"
+                       maxlength="30" />
+            </div>
+
+            <button id="startButton" type="button">
+                Start Chatting
+            </button>
+
+        </div>
+
+        <div id="searchingState" class="searching-state">
+
+            <div class="searching-orb"></div>
+
+            <h3>Finding someone for you...</h3>
+            <p id="searchingSub">Hang tight, this usually only takes a few seconds.</p>
+
+            <button id="cancelSearchButton" type="button">Cancel</button>
+
+        </div>
+
     </div>
 
 </div>
 
 @section Scripts {
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/10.0.0/signalr.min.js"></script>
-
-    <script>
-
-        const statusText = document.getElementById("statusText");
-        const statusMessage = document.getElementById("statusMessage");
-        const startButton = document.getElementById("startButton");
-        const debugBox = document.getElementById("debugBox");
-
-        function debug(message) {
-            console.log(message);
-            debugBox.innerHTML += "<br>" + message;
-        }
-
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/chatHub")
-            .withAutomaticReconnect()
-            .build();
-
-        connection.on("DebugMessage", function(message) {
-            debug(message);
-        });
-
-        connection.on("WaitingForMatch", function() {
-
-            debug("SERVER: WaitingForMatch received");
-
-            statusText.textContent = "Finding someone...";
-            statusMessage.textContent =
-                "We're looking for a random person for you.";
-
-            startButton.disabled = true;
-            startButton.textContent = "Searching...";
-        });
-
-        connection.on("MatchFound", function(conversationId) {
-
-            debug("SERVER: MatchFound received");
-            debug("Conversation ID: " + conversationId);
-
-            statusText.textContent = "Match found!";
-
-            statusMessage.textContent =
-                "Your conversation is ready.";
-
-            window.location.href =
-                "/Chat/Room?id=" + conversationId;
-        });
-
-        connection.onclose(function(error) {
-
-            debug("SIGNALR CLOSED");
-
-            if (error) {
-                debug("Error: " + error);
-            }
-        });
-
-        connection.onreconnecting(function() {
-
-            debug("SIGNALR RECONNECTING...");
-        });
-
-        connection.onreconnected(function() {
-
-            debug("SIGNALR RECONNECTED");
-        });
-
-        startButton.addEventListener("click", async function() {
-
-            debug("Start Chat clicked");
-
-            startButton.disabled = true;
-            startButton.textContent = "Connecting...";
-
-            try {
-
-                debug("SignalR state: " + connection.state);
-
-                if (connection.state === "Disconnected") {
-
-                    debug("Starting SignalR connection...");
-
-                    await connection.start();
-
-                    debug("SignalR CONNECTED");
-                }
-
-                debug("Calling StartMatching...");
-
-                await connection.invoke("StartMatching");
-
-                debug("StartMatching completed");
-
-            }
-            catch (error) {
-
-                console.error(error);
-
-                debug("ERROR: " + error);
-
-                statusText.textContent =
-                    "Connection error";
-
-                statusMessage.textContent =
-                    "Something went wrong. Check the debug message below.";
-
-                startButton.disabled = false;
-                startButton.textContent = "Try Again";
-            }
-
-        });
-
-    </script>
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+    <script src="~/js/lobby.js" asp-append-version="true"></script>
 }

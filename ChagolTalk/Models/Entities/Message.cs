@@ -1,5 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using ChagolTalk.Models.Enums;
 using ChagolTalk.Models.Identity;
 
 namespace ChagolTalk.Models.Entities
@@ -16,8 +17,10 @@ namespace ChagolTalk.Models.Entities
         public string SenderId { get; set; } = null!;
 
         [Required]
-        [MaxLength(1000)]
+        [MaxLength(2000)]
         public string Content { get; set; } = string.Empty;
+
+        public MessageType Type { get; set; } = MessageType.Text;
 
         public DateTime SentAt { get; set; } = DateTime.UtcNow;
 

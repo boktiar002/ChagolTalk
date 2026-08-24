@@ -1,6 +1,49 @@
-﻿@{
+@{
     ViewData["Title"] = "Privacy Policy";
 }
-<h1>@ViewData["Title"]</h1>
 
-<p>Use this page to detail your site's privacy policy.</p>
+<div style="max-width:720px;margin:0 auto;">
+
+    <h1 style="margin-bottom:8px;">Privacy Policy</h1>
+    <p class="text-muted" style="margin-bottom:35px;">Last updated: @DateTime.UtcNow.ToString("MMMM yyyy")</p>
+
+    <div class="card" style="padding:35px;line-height:1.8;">
+
+        <h3 class="section-title">What we collect</h3>
+        <p class="text-muted">
+            An account (username and password), an optional profile (display name, bio,
+            interests, language), and the text messages you send during a conversation
+            so the chat can function. We do not record or store voice call audio &mdash;
+            voice runs peer-to-peer directly between the two participants.
+        </p>
+
+        <h3 class="section-title">Microphone access</h3>
+        <p class="text-muted">
+            Voice calls use WebRTC. Your browser asks for microphone permission only when
+            you start or accept a call. Audio streams directly to the other participant
+            and is never routed through or stored on our servers.
+        </p>
+
+        <h3 class="section-title">Conversations &amp; matching</h3>
+        <p class="text-muted">
+            You're paired with a random stranger, optionally filtered by shared interests
+            or language. Messages are kept only to support the conversation and basic
+            moderation (like reviewing reports); they are not shared with third parties.
+        </p>
+
+        <h3 class="section-title">Reporting &amp; moderation</h3>
+        <p class="text-muted">
+            You can report anyone you're matched with. Reports are used to review and,
+            where necessary, restrict accounts. Repeated or serious reports may result
+            in a temporary or permanent suspension.
+        </p>
+
+        <h3 class="section-title">Your data</h3>
+        <p class="text-muted">
+            You can edit or clear most of your profile at any time from your dashboard.
+            Contact us if you'd like your account and associated data removed entirely.
+        </p>
+
+    </div>
+
+</div>

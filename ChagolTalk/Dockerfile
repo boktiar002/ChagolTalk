@@ -1,4 +1,4 @@
-﻿# Build stage
+# Build stage
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
@@ -19,7 +19,14 @@ WORKDIR /app
 
 COPY --from=build /app/publish .
 
-# Render provides the PORT environment variable
-ENV ASPNETCORE_URLS=http://0.0.0.0:${PORT}
+ENV ASPNETCORE_ENVIRONMENT=Production
+# Fallback for local `docker run` without -e PORT=...
+ENV PORT=8080
 
-ENTRYPOINT ["dotnet", "ChagolTalk.dll"]
+# IMPORTANT: this must stay in *shell* form (no brackets), not exec form.
+# Exec-form ENTRYPOINT/CMD arrays are passed straight to the OS without a
+# shell, so "$PORT" would never be substituted -- Docker would try to start
+# dotnet with the literal string "$PORT" as an argument. Render injects PORT
+# at container start (not build time), so it can only be read here, when the
+# container actually runs.
+ENTRYPOINT dotnet ChagolTalk.dll --urls http://0.0.0.0:$PORT

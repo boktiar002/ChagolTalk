@@ -1,5 +1,98 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+@model ChagolTalk.ViewModels.Account.EditProfileViewModel
 @{
+    ViewData["Title"] = "Edit Profile";
+}
+
+<div class="auth-container">
+
+    <div class="card auth-card">
+
+        <div class="text-center mb-4">
+
+            <div class="brand-icon">🐐</div>
+
+            <h1 class="auth-title">Your Profile</h1>
+            <p class="auth-subtitle">This is what strangers will see about you.</p>
+
+        </div>
+
+        @if (TempData["ProfileSaved"] != null)
+        {
+            <div class="alert-saved mb-4">Profile saved.</div>
+        }
+
+        <div class="text-center mb-4">
+
+            <div class="dashboard-avatar" style="margin-bottom:14px;">👤</div>
+
+            <form asp-action="RerollAvatar" method="post" style="display:inline;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-nav btn-sm">🎲 New Avatar</button>
+            </form>
+
+        </div>
+
+        <form asp-action="EditProfile" method="post">
+
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="mb-4">
+                <label asp-for="DisplayName"></label>
+                <input asp-for="DisplayName" class="form-control" placeholder="How strangers see you" />
+                <span asp-validation-for="DisplayName" class="text-danger"></span>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="Bio"></label>
+                <textarea asp-for="Bio" class="form-control" rows="3" placeholder="A short bio (optional)"></textarea>
+                <span asp-validation-for="Bio" class="text-danger"></span>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="Interests"></label>
+                <input asp-for="Interests" class="form-control" placeholder="music, gaming, movies" />
+                <span asp-validation-for="Interests" class="text-danger"></span>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="PreferredMode"></label>
+                <select asp-for="PreferredMode" class="form-control">
+                    <option value="Voice">Voice</option>
+                    <option value="Any">Either</option>
+                    <option value="Text">Text only</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="Language"></label>
+                <input asp-for="Language" class="form-control" placeholder="e.g. English" />
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="Country"></label>
+                <input asp-for="Country" class="form-control" placeholder="Optional" />
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="DateOfBirth"></label>
+                <input asp-for="DateOfBirth" class="form-control" />
+                <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+            </div>
+
+            <button class="btn btn-primary w-100">Save Changes</button>
+
+        </form>
+
+        <hr class="my-4" />
+
+        <div class="text-center">
+            <a asp-controller="Dashboard" asp-action="Index">Back to Dashboard</a>
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
 }

@@ -4,26 +4,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>d0a2c6b6-3e5a-4b7c-9f7c-chagoltalk-dev</UserSecretsId>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Remove="NewFolder2\**" />
-    <Compile Remove="NewFolder3\**" />
-    <Compile Remove="NewFolder4\**" />
-    <Compile Remove="NewFolder5\**" />
-    <Content Remove="NewFolder2\**" />
-    <Content Remove="NewFolder3\**" />
-    <Content Remove="NewFolder4\**" />
-    <Content Remove="NewFolder5\**" />
-    <EmbeddedResource Remove="NewFolder2\**" />
-    <EmbeddedResource Remove="NewFolder3\**" />
-    <EmbeddedResource Remove="NewFolder4\**" />
-    <EmbeddedResource Remove="NewFolder5\**" />
-    <None Remove="NewFolder2\**" />
-    <None Remove="NewFolder3\**" />
-    <None Remove="NewFolder4\**" />
-    <None Remove="NewFolder5\**" />
-  </ItemGroup>
 
   <ItemGroup>
     <Folder Include="wwwroot\images\" />
@@ -37,7 +19,6 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.10">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

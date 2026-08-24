@@ -1,19 +1,69 @@
-﻿.dashboard-card {
-    max-width: 700px;
+.dashboard-card {
+    max-width: 560px;
     margin: auto;
-    padding: 45px;
+    padding: 50px 40px;
     text-align: center;
 }
 
 .dashboard-avatar {
-    width: 100px;
-    height: 100px;
+    width: 90px;
+    height: 90px;
     border-radius: 50%;
-    background: var(--primary);
+    background: linear-gradient(145deg,#242734,#11131a);
+    border: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 40px;
+    font-size: 36px;
     margin: auto;
-    margin-bottom: 25px;
+    margin-bottom: 22px;
+}
+
+.dashboard-card h1 {
+    font-size: 24px;
+    margin-bottom: 6px;
+}
+
+.dashboard-card > p {
+    margin-bottom: 30px;
+}
+
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 32px;
+}
+
+.stat-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px 8px;
+}
+
+.stat-value {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.stat-label {
+    font-size: 11px;
+    color: var(--text2);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+
+.dashboard-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.dashboard-logout {
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
 }

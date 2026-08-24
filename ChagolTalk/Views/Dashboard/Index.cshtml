@@ -1,32 +1,49 @@
-﻿@{
+@model ChagolTalk.ViewModels.DashboardViewModel
+@{
     ViewData["Title"] = "Dashboard";
 }
 
-<div class="container mt-5">
+<div class="dashboard-card card">
 
-    <h1>Welcome to ChagolTalk 🎉</h1>
+    <div class="dashboard-avatar">👤</div>
 
-    <hr />
+    <h1>Welcome back, @(Model.User.DisplayName ?? Model.User.UserName)</h1>
+    <p class="text-muted">Ready to meet someone new?</p>
 
-    <p>You are successfully logged in.</p>
+    <div class="dashboard-stats">
 
-    <a asp-controller="Chat"
-       asp-action="Start"
-       class="btn btn-primary">
+        <div class="stat-box">
+            <div class="stat-value">@Model.RecentConversationCount</div>
+            <div class="stat-label">Conversations</div>
+        </div>
 
-        Start Chat
+        <div class="stat-box">
+            <div class="stat-value">@Model.FormattedVoiceTime</div>
+            <div class="stat-label">Voice time</div>
+        </div>
 
-    </a>
-    <form asp-controller="Account"
-          asp-action="Logout"
-          method="post">
+        <div class="stat-box">
+            <div class="stat-value">@Model.OnlineCount</div>
+            <div class="stat-label">Online now</div>
+        </div>
 
+    </div>
+
+    <div class="dashboard-actions">
+
+        <a asp-controller="Chat" asp-action="Start" class="btn btn-primary btn-lg">
+            🎙️ Start Chatting
+        </a>
+
+        <a asp-controller="Account" asp-action="EditProfile" class="btn btn-nav">
+            Edit Profile
+        </a>
+
+    </div>
+
+    <form asp-controller="Account" asp-action="Logout" method="post" class="dashboard-logout">
         @Html.AntiForgeryToken()
-
-        <button type="submit"
-                class="btn btn-danger">
-            Logout
-        </button>
-
+        <button type="submit" class="btn btn-danger">Logout</button>
     </form>
+
 </div>
