@@ -93,12 +93,13 @@ input[type="submit"] {
 }
 
 .navbar-brand {
-    font-size: 26px;
-    font-weight: 800;
-    letter-spacing: -.3px;
+    font-family: 'Inter', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -.2px;
     display: inline-flex;
     align-items: center;
-    gap: 9px;
+    gap: 8px;
 }
 
 .brand-goat {
@@ -111,10 +112,7 @@ input[type="submit"] {
 }
 
 .brand-text {
-    background: var(--accent-gradient);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: var(--text);
 }
 
 /* ---------- Nav identity area ---------- */
@@ -123,7 +121,7 @@ input[type="submit"] {
     border: 0;
     background: transparent;
     color: var(--text2);
-    font-size: 13.5px;
+    font-size: 15px;
     cursor: pointer;
     padding: 8px 4px;
     transition: color .2s ease;
@@ -140,8 +138,8 @@ input[type="submit"] {
 .guest-chip {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px 14px 7px 8px;
+    gap: 9px;
+    padding: 8px 16px 8px 9px;
     border-radius: 999px;
     background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.01)), var(--surface2);
     border: 1px solid var(--border);
@@ -159,18 +157,18 @@ input[type="submit"] {
     }
 
 .guest-chip-avatar {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     display: grid;
     place-items: center;
     background: var(--accent-gradient);
-    font-size: 12px;
+    font-size: 13px;
     flex-shrink: 0;
 }
 
 .guest-chip-name {
-    font-size: 13px;
+    font-size: 14.5px;
     font-weight: 600;
     max-width: 110px;
     overflow: hidden;
@@ -225,7 +223,7 @@ input[type="submit"] {
 
     .guest-chip-name {
         max-width: 64px;
-        font-size: 12px;
+        font-size: 13px;
     }
 
     .guest-chip-tag {
@@ -233,7 +231,7 @@ input[type="submit"] {
     }
 
     .nav-text-link {
-        font-size: 12.5px;
+        font-size: 13.5px;
     }
 }
 
@@ -368,7 +366,10 @@ a {
 
 .hero {
     text-align: center;
-    padding: 100px 0 90px;
+    /* ct-main already gives 60px of top breathing room -- this used to
+       stack another 100px on top of that, pushing all hero text almost
+       two screens down before anything was visible. */
+    padding: 15px 0 80px;
     position: relative;
 }
 
@@ -576,7 +577,7 @@ a {
 
 @media (max-width: 640px) {
     .hero {
-        padding: 60px 0 50px;
+        padding: 5px 0 45px;
     }
 
     .hero-title {
