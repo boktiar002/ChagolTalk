@@ -22,6 +22,9 @@
                 <div class="status">
                     <span class="status-dot" id="statusDot"></span>
                     <span id="connectionStatus">Connecting...</span>
+                    <span id="qualityIndicator" class="quality-indicator" style="display:none;" title="Call quality">
+                        <span></span><span></span><span></span>
+                    </span>
                 </div>
             </div>
 
@@ -33,8 +36,12 @@
                 🚩
             </button>
 
+            <button id="skipButton" type="button" class="skip-button" title="Find someone new">
+                Skip <span class="skip-icon">⏭</span>
+            </button>
+
             <button id="endButton" type="button" class="end-button">
-                End conversation
+                End
             </button>
 
         </div>
@@ -146,13 +153,14 @@
 
         <div class="ended-card">
 
-            <div class="ended-icon">👋</div>
-            <h2>Conversation ended</h2>
+            <div id="endedIcon" class="ended-icon">👋</div>
+            <h2 id="endedTitle">Conversation ended</h2>
             <p id="endedMessage">Your stranger left the conversation.</p>
 
             <div class="ended-actions">
                 <button id="findAnotherButton" type="button">Find Someone</button>
                 <button id="reportFromEndedButton" type="button">Report user</button>
+                <button id="cancelSkipButton" type="button" style="display:none;">Cancel</button>
             </div>
 
         </div>

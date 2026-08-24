@@ -4,13 +4,16 @@
     string? interests = ViewBag.Interests;
     string? language = ViewBag.Language;
     int onlineCount = ViewBag.OnlineCount ?? 0;
-    int waitingCount = ViewBag.WaitingCount ?? 0;
+    int estimatedWaitSeconds = ViewBag.EstimatedWaitSeconds ?? 15;
+    int peopleTalking = ViewBag.PeopleTalking ?? 0;
+    bool autoStart = ViewBag.AutoStart ?? false;
 }
 
 <div id="lobbyRoot"
      class="lobby-wrap"
      data-preferred-mode="@preferredMode"
-     data-interests="@interests">
+     data-interests="@interests"
+     data-auto-start="@(autoStart ? "true" : "false")">
 
     <div class="lobby-card">
 
@@ -20,7 +23,8 @@
 
             <div class="live-stats">
                 <span><span class="live-dot"></span> <span id="onlineCount">@onlineCount</span> online</span>
-                <span>🔎 <span id="waitingCount">@waitingCount</span> searching</span>
+                <span>&#9201; ~<span id="estimatedWait">@estimatedWaitSeconds</span>s to match</span>
+                <span>&#128172; <span id="peopleTalking">@peopleTalking</span> talking now</span>
             </div>
         </div>
 

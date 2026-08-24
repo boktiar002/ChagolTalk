@@ -1,5 +1,6 @@
 using ChagolTalk.Data;
 using ChagolTalk.Interfaces;
+using ChagolTalk.Models.Enums;
 using ChagolTalk.Models.Identity;
 using ChagolTalk.Options;
 using Microsoft.AspNetCore.Authorization;
@@ -33,10 +34,14 @@ namespace ChagolTalk.Controllers
             _userManager = userManager;
         }
 
-        public async Task<IActionResult> Start()
+        public async Task<IActionResult> Start(int? auto)
         {
             ViewBag.OnlineCount = _presence.OnlineCount;
             ViewBag.WaitingCount = _matchingService.WaitingCount;
+            ViewBag.EstimatedWaitSeconds = (int)_matchingService.EstimatedWaitTime.TotalSeconds;
+            ViewBag.PeopleTalking = await _context.Conversations
+                .CountAsync(c => c.Status == ConversationStatus.Active) * 2;
+            ViewBag.AutoStart = auto == 1;
 
             var user = await _userManager.GetUserAsync(User);
             ViewBag.Interests = user?.Interests;
@@ -69,7 +74,7 @@ namespace ChagolTalk.Controllers
             }
 
             // Don't open ended conversations.
-            if (conversation.Status == Models.Enums.ConversationStatus.Ended)
+            if (conversation.Status == ConversationStatus.Ended)
             {
                 return RedirectToAction("Index", "Dashboard");
             }

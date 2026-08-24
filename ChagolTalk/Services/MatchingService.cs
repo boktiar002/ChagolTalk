@@ -27,9 +27,30 @@ namespace ChagolTalk.Services
 
         private static readonly TimeSpan RematchCooldown = TimeSpan.FromMinutes(2);
 
+        // Rolling window of how long recent successful matches actually took
+        // to find, used to show a live "usually matches in ~Ns" estimate
+        // instead of a made-up number.
+        private const int WaitSampleCapacity = 30;
+        private readonly Queue<double> _recentWaitSeconds = new();
+        private static readonly TimeSpan DefaultEstimatedWait = TimeSpan.FromSeconds(15);
+
         public int WaitingCount
         {
             get { lock (_lock) return _waiting.Count; }
+        }
+
+        public TimeSpan EstimatedWaitTime
+        {
+            get
+            {
+                lock (_lock)
+                {
+                    if (_recentWaitSeconds.Count == 0)
+                        return DefaultEstimatedWait;
+
+                    return TimeSpan.FromSeconds(_recentWaitSeconds.Average());
+                }
+            }
         }
 
         public MatchResult FindMatch(WaitingUser user)
@@ -69,6 +90,8 @@ namespace ChagolTalk.Services
                 var now = DateTime.UtcNow;
                 _lastPartner[user.UserId] = (candidate.UserId, now);
                 _lastPartner[candidate.UserId] = (user.UserId, now);
+
+                RecordWaitSample((now - candidate.JoinedAt).TotalSeconds);
 
                 return new MatchResult
                 {
@@ -218,6 +241,15 @@ namespace ChagolTalk.Services
             var now = DateTime.UtcNow;
             _lastPartner[userIdA] = (userIdB, now);
             _lastPartner[userIdB] = (userIdA, now);
+        }
+
+        /// <summary>Must be called while holding <see cref="_lock"/>.</summary>
+        private void RecordWaitSample(double seconds)
+        {
+            _recentWaitSeconds.Enqueue(Math.Max(0, seconds));
+
+            while (_recentWaitSeconds.Count > WaitSampleCapacity)
+                _recentWaitSeconds.Dequeue();
         }
     }
 }

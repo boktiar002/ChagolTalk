@@ -113,6 +113,51 @@ namespace ChagolTalk.Controllers
             return RedirectToAction("Index", "Home");
         }
 
+        // POST: /Account/QuickStart
+        // Lets someone start a voice call with nothing but a display name --
+        // no password, no email. Creates a lightweight guest account behind
+        // the scenes and signs them in the same way a registered user would
+        // be, so the rest of the app (hub auth, conversations, dashboard)
+        // doesn't need to know the difference.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> QuickStart(QuickStartViewModel model)
+        {
+            var name = (model.DisplayName ?? string.Empty).Trim();
+
+            if (name.Length < 2)
+            {
+                TempData["QuickStartError"] = "Enter a name with at least 2 characters.";
+                return RedirectToAction("Index", "Home");
+            }
+
+            if (name.Length > 20)
+                name = name[..20];
+
+            var user = new ApplicationUser
+            {
+                UserName = "guest_" + Guid.NewGuid().ToString("N")[..12],
+                DisplayName = name,
+                IsGuest = true,
+                AvatarSeed = Guid.NewGuid().ToString("N")[..8],
+                PreferredMode = ChagolTalk.Models.Enums.ChatMode.Voice,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            var result = await _userManager.CreateAsync(user);
+
+            if (!result.Succeeded)
+            {
+                TempData["QuickStartError"] = "Could not start a session. Please try again.";
+                return RedirectToAction("Index", "Home");
+            }
+
+            await _signInManager.SignInAsync(user, isPersistent: false);
+
+            return RedirectToAction("Start", "Chat", new { auto = 1 });
+        }
+
         // GET: /Account/EditProfile
         [HttpGet]
         [Authorize]

@@ -160,7 +160,10 @@ namespace ChagolTalk.Hubs
 
             if (!result.Matched)
             {
-                await Clients.Caller.SendAsync("WaitingForMatch", _matchingService.WaitingCount);
+                await Clients.Caller.SendAsync(
+                    "WaitingForMatch",
+                    _matchingService.WaitingCount,
+                    (int)_matchingService.EstimatedWaitTime.TotalSeconds);
                 return;
             }
 
@@ -340,24 +343,35 @@ namespace ChagolTalk.Hubs
             await EndConversationInternal(conversationId);
         }
 
-        private async Task EndConversationInternal(Guid conversationId)
+        /// <summary>
+        /// Ends the current conversation and immediately rejoins the queue
+        /// for a new one in a single round trip, instead of making the user
+        /// go through the "conversation ended" screen and click again.
+        /// </summary>
+        public async Task SkipConversation(Guid conversationId, string? mode, string? interests, string? language)
+        {
+            await EndConversationInternal(conversationId);
+            await StartMatching(mode, interests, language);
+        }
+
+        private async Task<bool> EndConversationInternal(Guid conversationId)
         {
             var userId = UserId;
 
             if (string.IsNullOrEmpty(userId))
-                return;
+                return false;
 
             var conversation = await _context.Conversations
                 .FirstOrDefaultAsync(c => c.Id == conversationId);
 
             if (conversation == null)
-                return;
+                return false;
 
             if (!conversation.HasParticipant(userId))
                 throw new HubException("You are not a participant in this conversation.");
 
             if (conversation.Status == ConversationStatus.Ended)
-                return;
+                return false;
 
             conversation.Status = ConversationStatus.Ended;
             conversation.EndedAt = DateTime.UtcNow;
@@ -375,11 +389,13 @@ namespace ChagolTalk.Hubs
             var groupName = conversationId.ToString();
 
             // Only the OTHER participant gets "ConversationEnded" -- the
-            // person who clicked End already knows and updates their own UI
-            // locally once the invoke resolves.
+            // person who clicked End/Skip already knows and updates their
+            // own UI locally once the invoke resolves.
             await Clients.OthersInGroup(groupName).SendAsync("ConversationEnded");
 
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
+
+            return true;
         }
 
         private async Task BumpConversationStats(string userId)

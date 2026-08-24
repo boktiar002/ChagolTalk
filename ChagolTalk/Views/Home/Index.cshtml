@@ -1,6 +1,10 @@
 @{
     ViewData["Title"] = "Welcome";
     int onlineCount = ViewBag.OnlineCount ?? 0;
+    int estimatedWaitSeconds = ViewBag.EstimatedWaitSeconds ?? 15;
+    int peopleTalking = ViewBag.PeopleTalking ?? 0;
+    string? quickStartError = ViewBag.QuickStartError as string;
+    bool isAuthenticated = User.Identity?.IsAuthenticated == true;
 }
 
 <section class="hero">
@@ -19,12 +23,18 @@
     <p class="hero-description">
         ChagolTalk pairs you with a random person for a live voice conversation &mdash;
         texting is there too, but the mic is the main event.
-        One click, one stranger, one real conversation.
+        No account needed. Just a name and one click.
     </p>
+
+    <div class="live-stats-row">
+        <span><span class="live-dot"></span> @onlineCount online</span>
+        <span>&#9201; usually matches in ~@(estimatedWaitSeconds)s</span>
+        <span>&#128172; @peopleTalking people talking now</span>
+    </div>
 
     <div class="hero-buttons">
 
-        @if (User.Identity?.IsAuthenticated == true)
+        @if (isAuthenticated)
         {
             <a asp-controller="Chat" asp-action="Start" class="btn btn-primary btn-lg">
                 🎙️ Start Talking
@@ -32,12 +42,12 @@
         }
         else
         {
-            <a asp-controller="Account" asp-action="Register" class="btn btn-primary btn-lg">
-                Create Free Account
-            </a>
+            <button type="button" id="openQuickStartButton" class="btn btn-primary btn-lg">
+                🎙️ Start Talking Now
+            </button>
 
             <a asp-controller="Account" asp-action="Login" class="btn btn-nav btn-lg">
-                Login
+                Already have an account?
             </a>
         }
 
@@ -50,8 +60,8 @@
 
     <div class="step-card">
         <div class="step-number">1</div>
-        <h3>Pick a mode</h3>
-        <p>Voice, text, or either. Add interests so we can find someone worth talking to.</p>
+        <h3>Type your name</h3>
+        <p>No email, no password. Just tell us what to call you.</p>
     </div>
 
     <div class="step-card">
@@ -90,3 +100,51 @@
     </div>
 
 </section>
+
+@if (!isAuthenticated)
+{
+    <!-- QUICK START MODAL -->
+    <div id="quickStartModal" class="modal-overlay">
+
+        <div class="modal-card">
+
+            <h3>What should we call you?</h3>
+            <p class="modal-sub">No account needed &mdash; just start talking.</p>
+
+            <form asp-controller="Account" asp-action="QuickStart" method="post" id="quickStartForm">
+
+                @Html.AntiForgeryToken()
+
+                <input type="text"
+                       name="DisplayName"
+                       id="quickStartName"
+                       class="form-control mb-3"
+                       placeholder="Your name"
+                       maxlength="20"
+                       autocomplete="off"
+                       required />
+
+                <p id="quickStartError" class="quick-start-error" style="display:@(string.IsNullOrEmpty(quickStartError) ? "none" : "block");">
+                    @quickStartError
+                </p>
+
+                <div class="modal-actions">
+                    <button type="button" id="cancelQuickStartButton">Cancel</button>
+                    <button type="submit" id="confirmQuickStartButton">Start Matching &rarr;</button>
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+}
+
+@section Scripts {
+    <script src="~/js/home.js" asp-append-version="true"></script>
+
+    @if (!string.IsNullOrEmpty(quickStartError))
+    {
+        <script>document.addEventListener("DOMContentLoaded", () => window.__ctOpenQuickStart && window.__ctOpenQuickStart());</script>
+    }
+}

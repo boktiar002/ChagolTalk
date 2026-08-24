@@ -28,12 +28,17 @@
     const composerWrap = document.getElementById("composerWrap");
 
     const endButton = document.getElementById("endButton");
+    const skipButton = document.getElementById("skipButton");
     const reportButton = document.getElementById("reportButton");
+    const qualityIndicator = document.getElementById("qualityIndicator");
 
     const endedScreen = document.getElementById("endedScreen");
+    const endedIcon = document.getElementById("endedIcon");
+    const endedTitle = document.getElementById("endedTitle");
     const endedMessage = document.getElementById("endedMessage");
     const findAnotherButton = document.getElementById("findAnotherButton");
     const reportFromEndedButton = document.getElementById("reportFromEndedButton");
+    const cancelSkipButton = document.getElementById("cancelSkipButton");
 
     const callLaunchArea = document.getElementById("callLaunchArea");
     const startCallButton = document.getElementById("startCallButton");
@@ -249,6 +254,7 @@
         messages.style.display = "none";
         composerWrap.style.display = "none";
         endButton.style.display = "none";
+        skipButton.style.display = "none";
         if (reportButton) reportButton.style.display = "none";
         callLaunchArea.style.display = "none";
 
@@ -278,31 +284,101 @@
         window.location.href = "/Chat/Room?id=" + newConversationId;
     });
 
-    connection.on("WaitingForMatch", () => {
-        findAnotherButton.textContent = "Finding someone...";
+    connection.on("WaitingForMatch", (waitingCount, estimatedWaitSeconds) => {
+        findAnotherButton.textContent =
+            typeof estimatedWaitSeconds === "number"
+                ? `Finding someone... (~${estimatedWaitSeconds}s)`
+                : "Finding someone...";
     });
 
-    connection.on("MatchingBlocked", (reason) => {
+    function resetFindingUI() {
         findAnotherButton.disabled = false;
         findAnotherButton.textContent = "Find Someone";
         findAnotherButton.classList.remove("finding");
-        alert(reason);
+        endedIcon.classList.remove("searching");
+        endedIcon.textContent = "👋";
+        cancelSkipButton.style.display = "none";
+        reportFromEndedButton.style.display = "";
+    }
+
+    connection.on("MatchingBlocked", (reason) => {
+        resetFindingUI();
+        endedTitle.textContent = "Conversation ended";
+        endedMessage.textContent = reason;
     });
+
+    connection.on("MatchingTimedOut", () => {
+        resetFindingUI();
+        endedTitle.textContent = "Conversation ended";
+        endedMessage.textContent = "Nobody was available just now. Try again?";
+    });
+
+    async function enterFindingUI() {
+        findAnotherButton.disabled = true;
+        findAnotherButton.textContent = "Finding someone...";
+        findAnotherButton.classList.add("finding");
+    }
 
     findAnotherButton.addEventListener("click", async () => {
         try {
-            findAnotherButton.disabled = true;
-            findAnotherButton.textContent = "Finding someone...";
-            findAnotherButton.classList.add("finding");
+            await enterFindingUI();
 
             const prefs = readStoredPreferences();
             await connection.invoke("FindAnother", prefs.mode, prefs.interests, prefs.language);
         } catch (error) {
             console.error("Find another error:", error);
-            findAnotherButton.disabled = false;
-            findAnotherButton.textContent = "Find Someone";
-            findAnotherButton.classList.remove("finding");
+            resetFindingUI();
         }
+    });
+
+    // ---------- SKIP ----------
+    // One click that ends the current conversation AND immediately starts
+    // looking for the next stranger, instead of making the user end, look
+    // at a static "ended" screen, then click Find Someone separately.
+
+    skipButton.addEventListener("click", async () => {
+        try {
+            skipButton.disabled = true;
+
+            if (peerConnection) {
+                try {
+                    await connection.invoke("EndVoiceCall", conversationId, currentCallDurationSeconds());
+                } catch (error) {
+                    console.error("End voice call before skip error:", error);
+                }
+                cleanupVoiceCall();
+            }
+
+            showEndedScreen("Looking for someone new for you...");
+            endedIcon.classList.add("searching");
+            endedIcon.textContent = "🔄";
+            endedTitle.textContent = "Finding someone new...";
+            reportFromEndedButton.style.display = "none";
+            cancelSkipButton.style.display = "";
+            setStatus("Searching...", "warn");
+
+            await enterFindingUI();
+
+            const prefs = readStoredPreferences();
+            await connection.invoke("SkipConversation", conversationId, prefs.mode, prefs.interests, prefs.language);
+        } catch (error) {
+            console.error("Skip error:", error);
+            resetFindingUI();
+        } finally {
+            skipButton.disabled = false;
+        }
+    });
+
+    cancelSkipButton.addEventListener("click", async () => {
+        try {
+            await connection.invoke("CancelMatching");
+        } catch (error) {
+            console.error("Cancel skip error:", error);
+        }
+
+        resetFindingUI();
+        endedTitle.textContent = "Conversation ended";
+        endedMessage.textContent = "You stopped looking for someone new.";
     });
 
     function readStoredPreferences() {
@@ -453,11 +529,14 @@
                 if (state === "connected") {
                     callStatus.textContent = "Connected";
                     startCallTimer();
+                    startQualitySampling();
                 } else if (state === "failed") {
                     callStatus.textContent = "Connection failed";
                     stopCallTimer();
+                    stopQualitySampling();
                 } else if (state === "disconnected") {
                     callStatus.textContent = "Reconnecting...";
+                    stopQualitySampling();
                 }
             };
 
@@ -483,6 +562,84 @@
             } catch (error) {
                 console.error("Failed to add buffered ICE candidate:", error);
             }
+        }
+    }
+
+    // ---------- CONNECTION QUALITY ----------
+
+    let qualityInterval = null;
+    let lastQualitySample = null;
+
+    function startQualitySampling() {
+        stopQualitySampling();
+        lastQualitySample = null;
+        qualityIndicator.style.display = "inline-flex";
+        qualityInterval = setInterval(sampleConnectionQuality, 3000);
+        sampleConnectionQuality();
+    }
+
+    function stopQualitySampling() {
+        if (qualityInterval !== null) {
+            clearInterval(qualityInterval);
+            qualityInterval = null;
+        }
+        qualityIndicator.style.display = "none";
+        qualityIndicator.className = "quality-indicator";
+        lastQualitySample = null;
+    }
+
+    async function sampleConnectionQuality() {
+        if (!peerConnection) return;
+
+        try {
+            const stats = await peerConnection.getStats();
+            let packetsLost = 0;
+            let packetsReceived = 0;
+            let roundTripTime = null;
+
+            stats.forEach((report) => {
+                if (report.type === "inbound-rtp" && report.kind === "audio") {
+                    packetsLost += report.packetsLost || 0;
+                    packetsReceived += report.packetsReceived || 0;
+                }
+
+                if (
+                    report.type === "candidate-pair" &&
+                    report.state === "succeeded" &&
+                    typeof report.currentRoundTripTime === "number"
+                ) {
+                    roundTripTime = report.currentRoundTripTime;
+                }
+            });
+
+            // packetsLost/packetsReceived are cumulative since the call
+            // started, so compare against the previous sample to get a
+            // ratio for just this window -- otherwise one bad moment early
+            // in a long call would keep the indicator stuck on "poor"
+            // forever even after the network recovers.
+            let lossRatio = 0;
+
+            if (lastQualitySample) {
+                const deltaLost = packetsLost - lastQualitySample.packetsLost;
+                const deltaReceived = packetsReceived - lastQualitySample.packetsReceived;
+                const deltaTotal = deltaLost + deltaReceived;
+
+                if (deltaTotal > 0) lossRatio = deltaLost / deltaTotal;
+            }
+
+            lastQualitySample = { packetsLost, packetsReceived };
+
+            let quality = "good";
+
+            if (lossRatio > 0.08 || (roundTripTime !== null && roundTripTime > 0.5)) {
+                quality = "poor";
+            } else if (lossRatio > 0.02 || (roundTripTime !== null && roundTripTime > 0.25)) {
+                quality = "fair";
+            }
+
+            qualityIndicator.className = "quality-indicator " + quality;
+        } catch (error) {
+            console.error("Quality sampling error:", error);
         }
     }
 
@@ -518,6 +675,7 @@
 
     function cleanupVoiceCall() {
         stopCallTimer();
+        stopQualitySampling();
         callTimer.style.display = "none";
         callStartedAt = null;
         callBar.classList.remove("show");

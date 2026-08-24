@@ -39,6 +39,13 @@ namespace ChagolTalk.Models.Identity
 
         public bool IsBanned { get; set; }
 
+        /// <summary>
+        /// True for accounts auto-created by the "just start talking" quick
+        /// flow (name typed into a popup, no password). Guests can still use
+        /// everything -- dashboard, edit profile -- but never had to register.
+        /// </summary>
+        public bool IsGuest { get; set; }
+
         // ---------- System ----------
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

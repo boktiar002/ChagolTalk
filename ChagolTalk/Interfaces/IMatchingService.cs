@@ -29,5 +29,12 @@ namespace ChagolTalk.Interfaces
         /// again immediately when they both hit "next".
         /// </summary>
         void RememberPairing(string userIdA, string userIdB);
+
+        /// <summary>
+        /// Rolling estimate of how long a new arrival waits before being
+        /// matched, based on recent real match outcomes. Falls back to a
+        /// sane default when there isn't enough history yet.
+        /// </summary>
+        TimeSpan EstimatedWaitTime { get; }
     }
 }

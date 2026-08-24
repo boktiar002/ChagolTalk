@@ -27,7 +27,7 @@
     const lobbyError = document.getElementById("lobbyError");
 
     const onlineCountEl = document.getElementById("onlineCount");
-    const waitingCountEl = document.getElementById("waitingCount");
+    const estimatedWaitEl = document.getElementById("estimatedWait");
 
     // ---------- STATE ----------
 
@@ -187,13 +187,34 @@
         .withAutomaticReconnect(new ResilientRetryPolicy())
         .build();
 
-    function connectSignalR() {
-        if (connection.state !== signalR.HubConnectionState.Disconnected) return;
-        connection.start().catch((error) => console.error("SignalR connect error:", error));
+    // Both the page-load connect and the "Start Chatting" click can race to
+    // call .start() -- SignalR throws if you call it while already
+    // connecting. Sharing one in-flight promise means whichever caller gets
+    // there first does the actual connecting and everyone else just waits
+    // on the same result.
+    let connectPromise = null;
+
+    function ensureConnected() {
+        if (connection.state === signalR.HubConnectionState.Connected) {
+            return Promise.resolve();
+        }
+
+        if (!connectPromise) {
+            connectPromise = connection.start().catch((error) => {
+                connectPromise = null;
+                throw error;
+            });
+        }
+
+        return connectPromise;
     }
 
-    connectSignalR();
-    connection.onclose(() => setTimeout(connectSignalR, 5000));
+    ensureConnected().catch((error) => console.error("SignalR connect error:", error));
+
+    connection.onclose(() => {
+        connectPromise = null;
+        setTimeout(() => ensureConnected().catch((error) => console.error("SignalR connect error:", error)), 5000);
+    });
 
     connection.on("OnlineCount", (count) => {
         if (onlineCountEl) onlineCountEl.textContent = count;
@@ -220,9 +241,14 @@
         startButton.textContent = "Start Chatting";
     }
 
-    connection.on("WaitingForMatch", (waitingCount) => {
-        searchingSub.textContent = "We're looking for someone for you...";
-        if (waitingCountEl && typeof waitingCount === "number") waitingCountEl.textContent = waitingCount;
+    connection.on("WaitingForMatch", (waitingCount, estimatedWaitSeconds) => {
+        searchingSub.textContent = typeof estimatedWaitSeconds === "number"
+            ? `Usually takes about ${estimatedWaitSeconds}s...`
+            : "We're looking for someone for you...";
+
+        if (estimatedWaitEl && typeof estimatedWaitSeconds === "number") {
+            estimatedWaitEl.textContent = estimatedWaitSeconds;
+        }
     });
 
     connection.on("MatchFound", (conversationId, partnerName, sharedInterests, mode) => {
@@ -254,9 +280,7 @@
         startButton.textContent = "Connecting...";
 
         try {
-            if (connection.state !== signalR.HubConnectionState.Connected) {
-                await connection.start();
-            }
+            await ensureConnected();
 
             enterSearchingUI();
 
@@ -282,4 +306,13 @@
 
         exitSearchingUI();
     });
+
+    // ---------- AUTO-START ----------
+    // Set when arriving fresh from the home page's "just start talking"
+    // quick flow -- skips the idle screen and goes straight to searching
+    // with the default voice mode, matching what the popup promised.
+
+    if (root.dataset.autoStart === "true") {
+        startButton.click();
+    }
 })();

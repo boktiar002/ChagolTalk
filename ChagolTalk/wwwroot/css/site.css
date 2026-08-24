@@ -201,11 +201,45 @@ a {
     margin-bottom: 45px;
 }
 
+.live-stats-row {
+    display: flex;
+    justify-content: center;
+    gap: 22px;
+    flex-wrap: wrap;
+    margin-bottom: 35px;
+    font-size: 13.5px;
+    color: var(--text2);
+}
+
+.live-stats-row span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 8px rgba(34,197,94,.6);
+}
+
 .hero-buttons {
     display: flex;
     justify-content: center;
     gap: 20px;
     flex-wrap: wrap;
+}
+
+.quick-start-error {
+    background: rgba(239,68,68,.1);
+    border: 1px solid rgba(239,68,68,.3);
+    color: #ffb4b4;
+    border-radius: 12px;
+    padding: 9px 13px;
+    font-size: 12.5px;
+    margin-bottom: 14px;
 }
 
 /* HOW IT WORKS */
