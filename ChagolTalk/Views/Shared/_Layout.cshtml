@@ -1,4 +1,15 @@
-﻿<!DOCTYPE html>
+@using ChagolTalk.Models.Identity
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<ApplicationUser> UserManager
+@{
+    ApplicationUser? currentUser = null;
+
+    if (User.Identity?.IsAuthenticated == true)
+    {
+        currentUser = await UserManager.GetUserAsync(User);
+    }
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -27,14 +38,35 @@
             <div class="container">
 
                 <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">
-
-                    🐐 ChagolTalk
-
+                    <span class="brand-goat">🐐</span> ChagolTalk
                 </a>
 
                 <div class="ms-auto d-flex align-items-center">
 
-                    @if (User.Identity?.IsAuthenticated == true)
+                    @if (currentUser != null && currentUser.IsGuest)
+                    {
+                        <a class="guest-chip" asp-controller="Dashboard" asp-action="Index" title="Your session">
+                            <span class="guest-chip-avatar">👤</span>
+                            <span class="guest-chip-name">@currentUser.DisplayName</span>
+                            <span class="guest-chip-tag">Guest</span>
+                        </a>
+
+                        <form asp-controller="Account"
+                              asp-action="Logout"
+                              method="post"
+                              id="logoutForm">
+
+                            @Html.AntiForgeryToken()
+
+                            <button type="submit"
+                                    class="nav-text-link"
+                                    id="logoutButton">
+                                End session
+                            </button>
+
+                        </form>
+                    }
+                    else if (currentUser != null)
                     {
                         <a class="btn btn-nav me-2"
                            asp-controller="Dashboard"
@@ -59,20 +91,10 @@
                     }
                     else
                     {
-                        <a class="btn btn-nav me-2"
+                        <a class="nav-text-link"
                            asp-controller="Account"
                            asp-action="Login">
-
-                            Login
-
-                        </a>
-
-                        <a class="btn btn-primary"
-                           asp-controller="Account"
-                           asp-action="Register">
-
-                            Create Account
-
+                            Have an account? <strong>Login</strong>
                         </a>
                     }
 

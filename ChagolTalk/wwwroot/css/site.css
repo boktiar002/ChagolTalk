@@ -80,6 +80,25 @@ input[type="submit"] {
         padding: 9px 14px;
         font-size: 13px;
     }
+
+    .guest-chip {
+        padding: 6px 10px 6px 6px;
+        margin-right: 8px;
+        gap: 6px;
+    }
+
+    .guest-chip-name {
+        max-width: 64px;
+        font-size: 12px;
+    }
+
+    .guest-chip-tag {
+        display: none;
+    }
+
+    .nav-text-link {
+        font-size: 12.5px;
+    }
 }
 
 .navbar-brand {
@@ -87,6 +106,103 @@ input[type="submit"] {
     font-weight: 700;
     color: white !important;
     letter-spacing: .5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.brand-goat {
+    display: inline-block;
+    transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+
+.navbar-brand:hover .brand-goat {
+    transform: rotate(-12deg) scale(1.15);
+}
+
+/* ---------- Nav identity area ---------- */
+
+.nav-text-link {
+    border: 0;
+    background: transparent;
+    color: var(--text2);
+    font-size: 13.5px;
+    cursor: pointer;
+    padding: 8px 4px;
+    transition: color .2s ease;
+}
+
+    .nav-text-link:hover {
+        color: var(--text);
+    }
+
+    .nav-text-link strong {
+        color: var(--text);
+    }
+
+.guest-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px 7px 8px;
+    border-radius: 999px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    margin-right: 12px;
+    transition: .2s ease;
+    animation: chipIn .35s ease;
+}
+
+    .guest-chip:hover {
+        border-color: rgba(79,140,255,.4);
+        transform: translateY(-1px);
+        color: var(--text);
+    }
+
+.guest-chip-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(145deg,#3a4257,#1b1f2a);
+    font-size: 13px;
+    flex-shrink: 0;
+}
+
+.guest-chip-name {
+    font-size: 13px;
+    font-weight: 600;
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.guest-chip-tag {
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--primary);
+    background: rgba(79,140,255,.14);
+    border-radius: 999px;
+    padding: 3px 7px;
+}
+
+@keyframes chipIn {
+    from { opacity: 0; transform: translateY(-4px) scale(.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.ct-navbar {
+    animation: navIn .4s ease;
+}
+
+@keyframes navIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .btn {
