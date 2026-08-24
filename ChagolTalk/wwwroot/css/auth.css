@@ -36,8 +36,18 @@
 }
 
 .brand-icon {
-    font-size: 65px;
+    font-size: 60px;
     margin-bottom: 20px;
+    width: 100px;
+    height: 100px;
+    margin-left: auto;
+    margin-right: auto;
+    display: grid;
+    place-items: center;
+    border-radius: 28px;
+    background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,0));
+    border: 1px solid var(--border);
+    box-shadow: 0 0 0 1px rgba(91,141,239,.08), var(--shadow-glow);
 }
 
 .password-wrapper {
@@ -91,7 +101,8 @@
     margin: 25px 0 20px;
     font-weight: 700;
     color: var(--text);
-    border-left: 4px solid var(--primary);
+    border-left: 3px solid;
+    border-image: var(--accent-gradient) 1;
     padding-left: 12px;
 }
 

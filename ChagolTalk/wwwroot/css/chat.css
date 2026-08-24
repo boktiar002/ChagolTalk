@@ -249,8 +249,10 @@
 
 .start-call-button {
     width: 100%;
-    border: 1px solid rgba(255,255,255,.08);
-    background: linear-gradient( 135deg, #191c25, #11131a );
+    border: 1px solid transparent;
+    background:
+        linear-gradient(#0d0f16, #0d0f16) padding-box,
+        var(--accent-gradient, linear-gradient(135deg,#5b8def,#8b5cf6)) border-box;
     color: #fff;
     border-radius: 16px;
     padding: 15px 18px;
@@ -260,10 +262,11 @@
     cursor: pointer;
     transition: .2s ease;
     text-align: left;
+    box-shadow: 0 6px 24px rgba(91,141,239,.15);
 }
 
     .start-call-button:hover {
-        background: #20232d;
+        box-shadow: 0 10px 32px rgba(91,141,239,.28);
         transform: translateY(-1px);
     }
 
@@ -271,6 +274,7 @@
         opacity: .5;
         cursor: default;
         transform: none;
+        box-shadow: none;
     }
 
 .call-icon {
@@ -279,8 +283,8 @@
     border-radius: 13px;
     display: grid;
     place-items: center;
-    background: #f1f2f4;
-    color: #08090d;
+    background: var(--accent-gradient, linear-gradient(135deg,#5b8def,#8b5cf6));
+    color: #fff;
     font-size: 20px;
     flex-shrink: 0;
 }
@@ -437,8 +441,8 @@
 
     .message.me {
         align-self: flex-end;
-        background: #f1f2f4;
-        color: #0b0c10;
+        background: var(--accent-gradient, linear-gradient(135deg,#5b8def,#8b5cf6));
+        color: #fff;
         border-bottom-right-radius: 5px;
     }
 
@@ -450,7 +454,7 @@
 }
 
 .me .message-author {
-    color: #656b77;
+    color: rgba(255,255,255,.75);
 }
 
 .typing-indicator {
@@ -742,7 +746,7 @@
     border: 1px solid rgba(255,255,255,.1);
     font-size: 45px;
     margin-bottom: 24px;
-    box-shadow: 0 0 0 15px rgba(255,255,255,.025), 0 0 50px rgba(255,255,255,.08);
+    box-shadow: 0 0 0 15px rgba(91,141,239,.05), 0 0 50px rgba(91,141,239,.15);
 }
 
 .call-name {
@@ -855,11 +859,11 @@
 
 @keyframes callPulse {
     0%, 100% {
-        box-shadow: 0 0 0 15px rgba(255,255,255,.025), 0 0 50px rgba(255,255,255,.08);
+        box-shadow: 0 0 0 15px rgba(91,141,239,.05), 0 0 50px rgba(91,141,239,.15);
     }
 
     50% {
-        box-shadow: 0 0 0 25px rgba(255,255,255,.025), 0 0 70px rgba(255,255,255,.14);
+        box-shadow: 0 0 0 25px rgba(91,141,239,.08), 0 0 70px rgba(91,141,239,.25);
     }
 }
 
@@ -883,11 +887,17 @@
 
 .modal-card {
     width: min(420px, 100%);
-    background: #14161d;
+    background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0) 40%), #14161d;
     border: 1px solid rgba(255,255,255,.08);
     border-radius: 20px;
     padding: 28px;
     box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    animation: modalIn .25s cubic-bezier(.2,.8,.3,1.1);
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: translateY(10px) scale(.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .modal-card h3 {
@@ -982,6 +992,32 @@
 
     #confirmReportButton:disabled {
         opacity: .5;
+        cursor: default;
+    }
+
+#cancelQuickStartButton {
+    background: transparent;
+    color: #9aa1b1;
+    border: 1px solid rgba(255,255,255,.1) !important;
+}
+
+    #cancelQuickStartButton:hover {
+        color: #fff;
+    }
+
+#confirmQuickStartButton {
+    background: var(--accent-gradient, linear-gradient(135deg,#5b8def,#8b5cf6));
+    color: white;
+    box-shadow: 0 4px 16px rgba(91,141,239,.3);
+}
+
+    #confirmQuickStartButton:hover {
+        filter: brightness(1.08);
+        box-shadow: 0 6px 20px rgba(91,141,239,.4);
+    }
+
+    #confirmQuickStartButton:disabled {
+        opacity: .6;
         cursor: default;
     }
 

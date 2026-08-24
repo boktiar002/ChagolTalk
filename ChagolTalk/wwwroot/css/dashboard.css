@@ -3,18 +3,20 @@
     margin: auto;
     padding: 50px 40px;
     text-align: center;
+    animation: fadeUp .45s ease;
 }
 
 .dashboard-avatar {
-    width: 90px;
-    height: 90px;
+    width: 92px;
+    height: 92px;
     border-radius: 50%;
     background: linear-gradient(145deg,#242734,#11131a);
     border: 1px solid var(--border);
+    box-shadow: 0 0 0 4px rgba(91,141,239,.08), var(--shadow-glow);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 36px;
+    font-size: 38px;
     margin: auto;
     margin-bottom: 22px;
 }
@@ -22,6 +24,7 @@
 .dashboard-card h1 {
     font-size: 24px;
     margin-bottom: 6px;
+    letter-spacing: -.3px;
 }
 
 .dashboard-card > p {
@@ -36,15 +39,25 @@
 }
 
 .stat-box {
-    background: var(--surface2);
+    background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0)), var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 16px 8px;
+    border-radius: var(--radius-md);
+    padding: 18px 8px;
+    transition: .2s ease;
 }
 
+    .stat-box:hover {
+        border-color: rgba(91,141,239,.35);
+        transform: translateY(-2px);
+    }
+
 .stat-value {
-    font-size: 20px;
+    font-size: 21px;
     font-weight: 700;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
 .stat-label {
