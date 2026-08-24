@@ -393,14 +393,22 @@ a {
 }
 
 .hero-title {
-    font-size: 66px;
+    font-size: 60px;
     font-weight: 800;
-    line-height: 1.08;
-    letter-spacing: -1.5px;
+    line-height: 1.15;
+    letter-spacing: -1.3px;
     margin-bottom: 26px;
+    max-width: 780px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .hero-title .accent {
+    display: inline-block;
+    font-size: 0.62em;
+    font-weight: 700;
+    letter-spacing: -.5px;
+    margin-top: 10px;
     background: var(--accent-gradient);
     -webkit-background-clip: text;
     background-clip: text;
