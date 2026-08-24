@@ -98,11 +98,18 @@ namespace ChagolTalk.Controllers
                 new { urls = "stun:stun.l.google.com:19302" }
             };
 
-            if (!string.IsNullOrWhiteSpace(_turnOptions.Url))
+            var turnUrls = (_turnOptions.Urls ?? string.Empty)
+                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToList();
+
+            if (turnUrls.Count == 0 && !string.IsNullOrWhiteSpace(_turnOptions.Url))
+                turnUrls.Add(_turnOptions.Url);
+
+            foreach (var url in turnUrls)
             {
                 servers.Add(new
                 {
-                    urls = _turnOptions.Url,
+                    urls = url,
                     username = _turnOptions.Username,
                     credential = _turnOptions.Credential
                 });
