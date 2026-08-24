@@ -8,6 +8,14 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
+// Constrained containers (e.g. Render's free tier) cap the number of
+// inotify watches available to a process. ASP.NET Core's default config
+// pipeline watches appsettings.json for live changes via inotify, and on
+// these hosts that watch setup itself throws and crashes startup before
+// the app gets a chance to run. We don't need hot-reload of appsettings.json
+// in production, so this is disabled before the host builder wires it up.
+Environment.SetEnvironmentVariable("DOTNET_hostBuilder:reloadConfigOnChange", "false");
+
 var builder = WebApplication.CreateBuilder(args);
 
 // ==========================================
