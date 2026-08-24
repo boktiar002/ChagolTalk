@@ -93,17 +93,15 @@ input[type="submit"] {
 }
 
 .navbar-brand {
-    font-family: 'Inter', sans-serif;
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -.2px;
+    font-size: 23px;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 9px;
 }
 
 .brand-goat {
     display: inline-block;
+    font-size: 21px;
     transition: transform .3s cubic-bezier(.34,1.56,.64,1);
 }
 
@@ -112,7 +110,19 @@ input[type="submit"] {
 }
 
 .brand-text {
+    /* A distinct display face for the wordmark reads as "designed" rather
+       than reusing the body copy font at a bigger size -- the difference
+       most premium marks lean on instead of gradients/effects. */
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    font-weight: 700;
+    letter-spacing: -.4px;
     color: var(--text);
+    text-shadow: 0 0 24px rgba(91,141,239,.25);
+    transition: text-shadow .25s ease;
+}
+
+.navbar-brand:hover .brand-text {
+    text-shadow: 0 0 30px rgba(91,141,239,.4);
 }
 
 /* ---------- Nav identity area ---------- */
