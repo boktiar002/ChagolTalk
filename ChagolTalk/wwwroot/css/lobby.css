@@ -1,18 +1,24 @@
 /* ==========================================
    MATCHMAKING LOBBY
+
+   Deliberately one screenful: an orb, a line of context, the live
+   numbers, and one button. Everything that used to sit between the user
+   and that button (mode picker, interests, language) pushed it below the
+   fold on a phone for choices that barely changed the outcome.
    ========================================== */
 
 .lobby-wrap {
-    width: min(560px, 100%);
-    margin: 40px auto;
+    width: min(440px, 100%);
+    margin: 20px auto;
 }
 
 .lobby-card {
-    background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0) 35%), var(--surface);
+    background: linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,0) 40%), var(--surface);
     border: 1px solid var(--border);
     border-radius: 26px;
-    padding: 40px;
+    padding: 38px 34px 30px;
     box-shadow: var(--shadow);
+    text-align: center;
     animation: lobbyCardIn .4s ease;
 }
 
@@ -21,35 +27,60 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
-.lobby-header {
-    text-align: center;
-    margin-bottom: 30px;
+/* ---------- Idle state ---------- */
+
+.lobby-orb {
+    width: 78px;
+    height: 78px;
+    margin: 0 auto 20px;
+    border-radius: 26px;
+    display: grid;
+    place-items: center;
+    font-size: 34px;
+    background: linear-gradient(160deg, rgba(255,255,255,.10), rgba(255,255,255,.02)), var(--surface2);
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 30px rgba(91,141,239,.22);
+    animation: orbFloat 3.6s ease-in-out infinite;
 }
 
-.lobby-header h1 {
-    font-size: 28px;
+@keyframes orbFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.idle-state h1 {
+    font-size: 27px;
     font-weight: 800;
-    margin-bottom: 8px;
+    letter-spacing: -.6px;
+    margin-bottom: 7px;
 }
 
-.lobby-header p {
+.lobby-sub {
     color: var(--text2);
-    font-size: 14px;
+    font-size: 14.5px;
+    margin-bottom: 22px;
 }
 
 .live-stats {
-    display: flex;
+    display: inline-flex;
     justify-content: center;
-    gap: 18px;
-    margin-top: 16px;
-    font-size: 12.5px;
-    color: var(--text2);
+    flex-wrap: wrap;
+    gap: 2px;
+    margin-bottom: 26px;
+    padding: 5px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: rgba(255,255,255,.02);
 }
 
 .live-stats span {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
+    padding: 6px 12px;
+    font-size: 12.5px;
+    color: var(--text2);
+    white-space: nowrap;
 }
 
 .live-dot {
@@ -58,223 +89,38 @@
     border-radius: 50%;
     background: var(--success);
     box-shadow: 0 0 8px rgba(34,197,94,.6);
+    animation: livePulse 1.8s infinite;
 }
 
-/* ---------- Mode picker ---------- */
-
-.field-label {
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--text2);
-    text-transform: uppercase;
-    letter-spacing: .5px;
-    margin-bottom: 10px;
-    display: block;
+@keyframes livePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .45; }
 }
 
-.mode-picker {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    margin-bottom: 26px;
-}
-
-.mode-option {
-    border: 1px solid var(--border);
-    background: var(--surface2);
-    border-radius: 16px;
-    padding: 16px 10px;
-    text-align: center;
-    cursor: pointer;
-    transition: .2s ease;
-    color: var(--text2);
-}
-
-    .mode-option:hover {
-        border-color: rgba(91,141,239,.4);
-        color: var(--text);
-        transform: translateY(-2px);
-    }
-
-    .mode-option.selected {
-        border-color: transparent;
-        background:
-            linear-gradient(var(--surface2), var(--surface2)) padding-box,
-            var(--accent-gradient) border-box;
-        border: 1px solid transparent;
-        color: var(--text);
-        box-shadow: 0 6px 20px rgba(91,141,239,.25);
-    }
-
-.mode-icon {
-    font-size: 24px;
-    margin-bottom: 8px;
-}
-
-.mode-name {
-    font-size: 13px;
-    font-weight: 700;
-}
-
-.mode-desc {
-    font-size: 11px;
-    margin-top: 3px;
-    opacity: .8;
-}
-
-/* ---------- Interests ---------- */
-
-.interests-field {
-    margin-bottom: 22px;
-}
-
-.interest-input-row {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 10px;
-}
-
-#interestInput {
-    flex: 1;
-}
-
-#addInterestButton {
-    border: 1px solid var(--border);
-    background: var(--surface2);
-    color: white;
-    border-radius: 14px;
-    padding: 0 18px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: .2s ease;
-}
-
-    #addInterestButton:hover {
-        background: #2a3140;
-    }
-
-.interest-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    min-height: 20px;
-}
-
-.interest-chip {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(91,141,239,.12);
-    border: 1px solid rgba(91,141,239,.3);
-    color: #bcd3ff;
-    border-radius: 999px;
-    padding: 6px 8px 6px 14px;
-    font-size: 12.5px;
-}
-
-.interest-chip button {
-    border: 0;
-    background: transparent;
-    color: #bcd3ff;
-    cursor: pointer;
-    font-size: 14px;
-    line-height: 1;
-    padding: 2px;
-    opacity: .7;
-}
-
-    .interest-chip button:hover {
-        opacity: 1;
-    }
-
-.field-hint {
-    font-size: 11.5px;
-    color: var(--text2);
-    margin-top: 8px;
-}
-
-/* ---------- Mic check ---------- */
-
-.mic-check {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 14px 16px;
-    margin-bottom: 26px;
-}
-
-.mic-check-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 12px;
-    display: grid;
-    place-items: center;
-    background: rgba(255,255,255,.06);
-    font-size: 17px;
-    flex-shrink: 0;
-}
-
-.mic-check-text {
-    flex: 1;
-    min-width: 0;
-}
-
-.mic-check-text strong {
-    display: block;
-    font-size: 13px;
-}
-
-.mic-check-text span {
-    font-size: 11.5px;
-    color: var(--text2);
-}
-
-.mic-level {
-    width: 46px;
-    height: 6px;
-    border-radius: 999px;
-    background: rgba(255,255,255,.08);
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.mic-level-fill {
-    height: 100%;
-    width: 0%;
-    background: var(--success);
-    transition: width .08s linear;
-}
-
-.mic-check.granted .mic-check-icon { background: rgba(34,197,94,.15); }
-.mic-check.denied .mic-check-icon { background: rgba(239,68,68,.15); }
-
-/* ---------- Start button ---------- */
+/* ---------- The one button ---------- */
 
 #startButton {
     width: 100%;
     border: 0;
-    border-radius: 16px;
-    padding: 18px;
-    font-size: 15px;
+    border-radius: 18px;
+    padding: 19px;
+    font-size: 16.5px;
     font-weight: 700;
     color: #fff;
     background: var(--accent-gradient);
-    box-shadow: 0 8px 26px rgba(91,141,239,.32);
+    box-shadow: 0 10px 30px rgba(91,141,239,.35);
     cursor: pointer;
-    transition: .2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
+    transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
 }
 
     #startButton:hover {
         transform: translateY(-2px);
-        box-shadow: 0 12px 34px rgba(91,141,239,.45);
+        box-shadow: 0 14px 38px rgba(91,141,239,.48);
         filter: brightness(1.06);
+    }
+
+    #startButton:active {
+        transform: translateY(0);
     }
 
     #startButton:disabled {
@@ -284,12 +130,49 @@
         box-shadow: none;
     }
 
+/* ---------- Mic status ---------- */
+
+.mic-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+    font-size: 12.5px;
+    color: var(--text3);
+}
+
+.mic-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text3);
+    transition: background .25s ease, box-shadow .25s ease;
+}
+
+.mic-status.granted .mic-status-dot {
+    background: var(--success);
+    box-shadow: 0 0 8px rgba(34,197,94,.6);
+}
+
+.mic-status.granted {
+    color: var(--text2);
+}
+
+.mic-status.denied .mic-status-dot {
+    background: var(--danger);
+    box-shadow: 0 0 8px rgba(239,68,68,.6);
+}
+
+.mic-status.denied {
+    color: #ffb4b4;
+}
+
 /* ---------- Searching state ---------- */
 
 .searching-state {
     display: none;
-    text-align: center;
-    padding: 20px 0 6px;
+    padding: 14px 0 6px;
 }
 
 .searching-state.show {
@@ -302,7 +185,6 @@
     margin: 0 auto 22px;
     border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, #6f9dff, #3a2f8f 70%);
-    position: relative;
     box-shadow: 0 0 0 0 rgba(91,141,239,.5);
     animation: orbPulse 1.8s infinite;
 }
@@ -314,13 +196,13 @@
 }
 
 .searching-state h3 {
-    font-size: 18px;
+    font-size: 19px;
     margin-bottom: 6px;
 }
 
 .searching-state p {
     color: var(--text2);
-    font-size: 13px;
+    font-size: 13.5px;
     margin-bottom: 22px;
 }
 
@@ -329,20 +211,22 @@
     background: transparent;
     color: var(--text2);
     border-radius: 14px;
-    padding: 11px 24px;
+    padding: 11px 26px;
     cursor: pointer;
     transition: .2s ease;
 }
 
     #cancelSearchButton:hover {
         color: white;
-        border-color: rgba(255,255,255,.3);
+        border-color: var(--border-strong);
     }
 
 .idle-state.hidden,
 .searching-state.hidden {
     display: none;
 }
+
+/* ---------- Error ---------- */
 
 .lobby-error {
     display: none;
@@ -353,6 +237,7 @@
     padding: 12px 16px;
     font-size: 13px;
     margin-bottom: 20px;
+    text-align: left;
 }
 
 .lobby-error.show {
@@ -360,11 +245,48 @@
 }
 
 @media (max-width: 480px) {
-    .lobby-card {
-        padding: 26px 20px;
+    /* Trimmed so the whole card clears the fold on a 667px-tall phone
+       (the smallest still in common use) without any scrolling at all. */
+    .lobby-wrap {
+        margin: 4px auto;
     }
 
-    .mode-picker {
-        grid-template-columns: 1fr;
+    .lobby-card {
+        padding: 26px 20px 20px;
+    }
+
+    .lobby-orb {
+        width: 64px;
+        height: 64px;
+        border-radius: 22px;
+        font-size: 27px;
+        margin-bottom: 14px;
+    }
+
+    .idle-state h1 {
+        font-size: 23px;
+    }
+
+    .lobby-sub {
+        font-size: 13.5px;
+        margin-bottom: 14px;
+    }
+
+    .live-stats {
+        margin-bottom: 18px;
+    }
+
+    .live-stats span {
+        padding: 5px 9px;
+        font-size: 12px;
+    }
+
+    #startButton {
+        padding: 17px;
+        font-size: 16px;
+    }
+
+    .mic-status {
+        margin-top: 12px;
     }
 }

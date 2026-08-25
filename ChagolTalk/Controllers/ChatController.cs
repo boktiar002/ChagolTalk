@@ -2,10 +2,8 @@ using ChagolTalk.Data;
 using ChagolTalk.Hubs;
 using ChagolTalk.Interfaces;
 using ChagolTalk.Models.Enums;
-using ChagolTalk.Models.Identity;
 using ChagolTalk.Options;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -20,7 +18,6 @@ namespace ChagolTalk.Controllers
         private readonly TurnServerOptions _turnOptions;
         private readonly IPresenceTracker _presence;
         private readonly IMatchingService _matchingService;
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IHubContext<ChatHub> _hubContext;
 
         public ChatController(
@@ -28,30 +25,22 @@ namespace ChagolTalk.Controllers
             IOptions<TurnServerOptions> turnOptions,
             IPresenceTracker presence,
             IMatchingService matchingService,
-            UserManager<ApplicationUser> userManager,
             IHubContext<ChatHub> hubContext)
         {
             _context = context;
             _turnOptions = turnOptions.Value;
             _presence = presence;
             _matchingService = matchingService;
-            _userManager = userManager;
             _hubContext = hubContext;
         }
 
         public async Task<IActionResult> Start(int? auto)
         {
             ViewBag.OnlineCount = _presence.OnlineCount;
-            ViewBag.WaitingCount = _matchingService.WaitingCount;
             ViewBag.EstimatedWaitSeconds = (int)_matchingService.EstimatedWaitTime.TotalSeconds;
             ViewBag.PeopleTalking = await _context.Conversations
                 .CountAsync(c => c.Status == ConversationStatus.Active) * 2;
             ViewBag.AutoStart = auto == 1;
-
-            var user = await _userManager.GetUserAsync(User);
-            ViewBag.Interests = user?.Interests;
-            ViewBag.Language = user?.Language;
-            ViewBag.PreferredMode = user?.PreferredMode.ToString() ?? "Voice";
 
             return View();
         }

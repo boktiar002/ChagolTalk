@@ -1,5 +1,9 @@
 // ==========================================
 // MATCHMAKING LOBBY
+// One button. Mode/interest/language pickers were removed -- every room
+// supports both voice and text regardless, and ChatMode.Any matches with
+// everyone, so the options cost a screenful of scrolling without
+// meaningfully changing who you got paired with.
 // ==========================================
 
 (function () {
@@ -9,15 +13,8 @@
 
     // ---------- DOM ----------
 
-    const modeOptions = Array.from(document.querySelectorAll(".mode-option"));
-    const interestInput = document.getElementById("interestInput");
-    const addInterestButton = document.getElementById("addInterestButton");
-    const interestChips = document.getElementById("interestChips");
-    const languageInput = document.getElementById("languageInput");
-
     const micCheck = document.getElementById("micCheck");
     const micStatusText = document.getElementById("micStatusText");
-    const micLevelFill = document.getElementById("micLevelFill");
 
     const startButton = document.getElementById("startButton");
     const idleState = document.getElementById("idleState");
@@ -46,144 +43,36 @@
         searchingSound.currentTime = 0;
     }
 
-    // ---------- STATE ----------
-
-    let selectedMode = root.dataset.preferredMode ? root.dataset.preferredMode.toLowerCase() : "voice";
-    const interests = new Set(
-        (root.dataset.interests || "")
-            .split(",")
-            .map((i) => i.trim())
-            .filter(Boolean)
-    );
-
-    function renderMode() {
-        modeOptions.forEach((el) => el.classList.toggle("selected", el.dataset.mode === selectedMode));
-    }
-
-    modeOptions.forEach((el) => {
-        el.addEventListener("click", () => {
-            selectedMode = el.dataset.mode;
-            renderMode();
-            if (selectedMode !== "text") requestMicAccess();
-        });
-    });
-
-    renderMode();
-
-    function renderChips() {
-        interestChips.innerHTML = "";
-
-        interests.forEach((tag) => {
-            const chip = document.createElement("span");
-            chip.className = "interest-chip";
-            chip.innerHTML = "";
-
-            const label = document.createElement("span");
-            label.textContent = tag;
-
-            const remove = document.createElement("button");
-            remove.type = "button";
-            remove.textContent = "✕";
-            remove.addEventListener("click", () => {
-                interests.delete(tag);
-                renderChips();
-            });
-
-            chip.appendChild(label);
-            chip.appendChild(remove);
-            interestChips.appendChild(chip);
-        });
-    }
-
-    function addInterest() {
-        const raw = interestInput.value.trim().toLowerCase();
-        if (!raw) return;
-
-        raw.split(",").forEach((part) => {
-            const tag = part.trim();
-            if (tag && interests.size < 10) interests.add(tag);
-        });
-
-        interestInput.value = "";
-        renderChips();
-    }
-
-    addInterestButton.addEventListener("click", addInterest);
-
-    interestInput.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === ",") {
-            event.preventDefault();
-            addInterest();
-        }
-    });
-
-    renderChips();
-
-    // ---------- MIC CHECK ----------
+    // ---------- MIC ----------
+    // Asked for up front so the permission prompt doesn't ambush someone
+    // mid-call, and so the first call connects without waiting on it.
 
     let micStream = null;
-    let micGranted = false;
-    let audioContext = null;
-    let analyser = null;
-    let micLevelRaf = null;
 
     async function requestMicAccess() {
-        if (micGranted || micStream) return;
-
-        micStatusText.textContent = "Requesting access...";
+        if (micStream) return;
 
         try {
             micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            micGranted = true;
             micCheck.classList.add("granted");
             micCheck.classList.remove("denied");
             micStatusText.textContent = "Microphone ready";
-
-            startMicLevelMeter();
         } catch (error) {
             console.error("Microphone permission error:", error);
-            micGranted = false;
             micCheck.classList.add("denied");
-            micStatusText.textContent = "Microphone blocked - voice calls won't work";
-        }
-    }
-
-    function startMicLevelMeter() {
-        try {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const source = audioContext.createMediaStreamSource(micStream);
-            analyser = audioContext.createAnalyser();
-            analyser.fftSize = 256;
-            source.connect(analyser);
-
-            const data = new Uint8Array(analyser.frequencyBinCount);
-
-            function tick() {
-                analyser.getByteFrequencyData(data);
-                const avg = data.reduce((a, b) => a + b, 0) / data.length;
-                micLevelFill.style.width = Math.min(100, (avg / 90) * 100) + "%";
-                micLevelRaf = requestAnimationFrame(tick);
-            }
-
-            tick();
-        } catch (error) {
-            console.error("Mic level meter error:", error);
+            micCheck.classList.remove("granted");
+            micStatusText.textContent = "Microphone blocked — voice calls won't work";
         }
     }
 
     function stopMicStream() {
-        if (micLevelRaf) cancelAnimationFrame(micLevelRaf);
-        if (audioContext) {
-            audioContext.close().catch(() => {});
-            audioContext = null;
-        }
         if (micStream) {
-            micStream.getTracks().forEach((t) => t.stop());
+            micStream.getTracks().forEach((track) => track.stop());
             micStream = null;
         }
     }
 
-    if (selectedMode !== "text") requestMicAccess();
+    requestMicAccess();
 
     // ---------- SIGNALR ----------
 
@@ -204,7 +93,7 @@
         .withAutomaticReconnect(new ResilientRetryPolicy())
         .build();
 
-    // Both the page-load connect and the "Start Chatting" click can race to
+    // Both the page-load connect and the "Start Talking" click can race to
     // call .start() -- SignalR throws if you call it while already
     // connecting. Sharing one in-flight promise means whichever caller gets
     // there first does the actual connecting and everyone else just waits
@@ -255,7 +144,7 @@
         idleState.classList.remove("hidden");
         searchingState.classList.remove("show");
         startButton.disabled = false;
-        startButton.textContent = "Start Chatting";
+        startButton.textContent = "Start Talking";
         stopSearchingSound();
     }
 
@@ -269,15 +158,7 @@
         }
     });
 
-    connection.on("MatchFound", (conversationId, partnerName, sharedInterests, mode) => {
-        try {
-            sessionStorage.setItem("ct_mode", selectedMode);
-            sessionStorage.setItem("ct_interests", Array.from(interests).join(","));
-            sessionStorage.setItem("ct_language", languageInput.value.trim());
-        } catch (e) {
-            /* sessionStorage unavailable — "find another" from the room will just use defaults */
-        }
-
+    connection.on("MatchFound", (conversationId) => {
         stopSearchingSound();
         stopMicStream();
         window.location.href = "/Chat/Room?id=" + conversationId;
@@ -304,12 +185,9 @@
 
             enterSearchingUI();
 
-            await connection.invoke(
-                "StartMatching",
-                selectedMode,
-                Array.from(interests).join(","),
-                languageInput.value.trim()
-            );
+            // "any" pairs with everyone, and the room offers voice and text
+            // either way -- see the note at the top of this file.
+            await connection.invoke("StartMatching", "any", "", "");
         } catch (error) {
             console.error("Start matching error:", error);
             exitSearchingUI();
@@ -328,9 +206,9 @@
     });
 
     // ---------- AUTO-START ----------
-    // Set when arriving fresh from the home page's "just start talking"
-    // quick flow -- skips the idle screen and goes straight to searching
-    // with the default voice mode, matching what the popup promised.
+    // Set when arriving fresh from the home page's quick-start popup --
+    // skips this screen entirely and goes straight to searching, matching
+    // what the popup promised.
 
     if (root.dataset.autoStart === "true") {
         startButton.click();

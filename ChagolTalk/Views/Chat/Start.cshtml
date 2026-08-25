@@ -1,105 +1,38 @@
 @{
     ViewData["Title"] = "Find Someone";
-    string preferredMode = ViewBag.PreferredMode ?? "Voice";
-    string? interests = ViewBag.Interests;
-    string? language = ViewBag.Language;
     int onlineCount = ViewBag.OnlineCount ?? 0;
     int estimatedWaitSeconds = ViewBag.EstimatedWaitSeconds ?? 15;
     int peopleTalking = ViewBag.PeopleTalking ?? 0;
     bool autoStart = ViewBag.AutoStart ?? false;
 }
 
-<div id="lobbyRoot"
-     class="lobby-wrap"
-     data-preferred-mode="@preferredMode"
-     data-interests="@interests"
-     data-auto-start="@(autoStart ? "true" : "false")">
+<div id="lobbyRoot" class="lobby-wrap" data-auto-start="@(autoStart ? "true" : "false")">
 
     <div class="lobby-card">
-
-        <div class="lobby-header">
-            <h1>Ready to talk?</h1>
-            <p>Pick how you want to connect, then meet a random stranger.</p>
-
-            <div class="live-stats">
-                <span><span class="live-dot"></span> <span id="onlineCount">@onlineCount</span> online</span>
-                <span>&#9201; ~<span id="estimatedWait">@estimatedWaitSeconds</span>s to match</span>
-                <span>&#128172; <span id="peopleTalking">@peopleTalking</span> talking now</span>
-            </div>
-        </div>
 
         <div id="lobbyError" class="lobby-error"></div>
 
         <div id="idleState" class="idle-state">
 
-            <label class="field-label">How do you want to chat?</label>
+            <div class="lobby-orb">🎙️</div>
 
-            <div class="mode-picker">
+            <h1>Ready to talk?</h1>
+            <p class="lobby-sub">One tap and we&rsquo;ll find you someone.</p>
 
-                <div class="mode-option" data-mode="voice">
-                    <div class="mode-icon">🎙️</div>
-                    <div class="mode-name">Voice</div>
-                    <div class="mode-desc">Talk live</div>
-                </div>
-
-                <div class="mode-option" data-mode="any">
-                    <div class="mode-icon">🎲</div>
-                    <div class="mode-name">Either</div>
-                    <div class="mode-desc">Voice or text</div>
-                </div>
-
-                <div class="mode-option" data-mode="text">
-                    <div class="mode-icon">⌨️</div>
-                    <div class="mode-name">Text only</div>
-                    <div class="mode-desc">Just typing</div>
-                </div>
-
-            </div>
-
-            <div id="micCheck" class="mic-check">
-                <div class="mic-check-icon">🎤</div>
-
-                <div class="mic-check-text">
-                    <strong>Microphone check</strong>
-                    <span id="micStatusText">Not requested yet</span>
-                </div>
-
-                <div class="mic-level">
-                    <div id="micLevelFill" class="mic-level-fill"></div>
-                </div>
-            </div>
-
-            <div class="interests-field">
-                <label class="field-label" for="interestInput">Interests (optional)</label>
-
-                <div class="interest-input-row">
-                    <input id="interestInput"
-                           type="text"
-                           class="form-control"
-                           placeholder="e.g. music, gaming, movies"
-                           maxlength="30" />
-
-                    <button id="addInterestButton" type="button">Add</button>
-                </div>
-
-                <div id="interestChips" class="interest-chips"></div>
-
-                <p class="field-hint">We'll try to match you with someone who shares an interest.</p>
-            </div>
-
-            <div class="interests-field">
-                <label class="field-label" for="languageInput">Preferred language (optional)</label>
-                <input id="languageInput"
-                       type="text"
-                       class="form-control"
-                       placeholder="e.g. English"
-                       value="@language"
-                       maxlength="30" />
+            <div class="live-stats">
+                <span><span class="live-dot"></span> <span id="onlineCount">@onlineCount</span> online</span>
+                <span>&#9201; ~<span id="estimatedWait">@estimatedWaitSeconds</span>s</span>
+                <span>&#128172; <span id="peopleTalking">@peopleTalking</span> talking</span>
             </div>
 
             <button id="startButton" type="button">
-                Start Chatting
+                Start Talking
             </button>
+
+            <div id="micCheck" class="mic-status">
+                <span class="mic-status-dot"></span>
+                <span id="micStatusText">Checking microphone&hellip;</span>
+            </div>
 
         </div>
 
@@ -107,8 +40,8 @@
 
             <div class="searching-orb"></div>
 
-            <h3>Finding someone for you...</h3>
-            <p id="searchingSub">Hang tight, this usually only takes a few seconds.</p>
+            <h3>Finding someone for you&hellip;</h3>
+            <p id="searchingSub">This usually only takes a few seconds.</p>
 
             <button id="cancelSearchButton" type="button">Cancel</button>
 

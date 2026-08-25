@@ -634,7 +634,7 @@ a {
        tightened, and the live-stats row (nice to have, not the point)
        moves below it. */
     .ct-main {
-        padding: 20px 0 40px;
+        padding: 16px 0 28px;
     }
 
     .hero {
