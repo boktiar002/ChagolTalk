@@ -337,7 +337,7 @@
         endedMessage.textContent = "Nobody was available just now. Try again?";
     });
 
-    async function enterFindingUI() {
+    function enterFindingUI() {
         findAnotherButton.disabled = true;
         findAnotherButton.textContent = "Finding someone...";
         findAnotherButton.classList.add("finding");
@@ -346,7 +346,7 @@
     findAnotherButton.addEventListener("click", async () => {
         try {
             playSearchingSound();
-            await enterFindingUI();
+            enterFindingUI();
 
             const prefs = readStoredPreferences();
             await connection.invoke("FindAnother", prefs.mode, prefs.interests, prefs.language);
@@ -383,7 +383,7 @@
             cancelSkipButton.style.display = "";
             setStatus("Searching...", "warn");
 
-            await enterFindingUI();
+            enterFindingUI();
 
             const prefs = readStoredPreferences();
             await connection.invoke("SkipConversation", conversationId, prefs.mode, prefs.interests, prefs.language);
@@ -499,10 +499,45 @@
     let remoteDescriptionSet = false;
     let pendingIceCandidates = [];
     let cachedIceServers = null;
+    let sawRelayCandidate = false;
 
     let callTimerInterval = null;
     let callSeconds = 0;
     let callStartedAt = null;
+
+    // If ICE hasn't succeeded by now the call is not going to connect on its
+    // own -- without this the UI sits on "Connecting..." forever, because a
+    // stalled ICE agent stays in "checking" rather than reporting "failed".
+    const CALL_CONNECT_TIMEOUT_MS = 25000;
+    let callConnectTimeout = null;
+
+    function startCallTimeout() {
+        clearCallTimeout();
+
+        callConnectTimeout = setTimeout(() => {
+            if (!peerConnection || peerConnection.connectionState === "connected") return;
+
+            failCall(
+                sawRelayCandidate
+                    ? "Couldn't connect. Try again in a moment."
+                    : "Couldn't connect — your networks are blocking the call."
+            );
+        }, CALL_CONNECT_TIMEOUT_MS);
+    }
+
+    function clearCallTimeout() {
+        if (callConnectTimeout !== null) {
+            clearTimeout(callConnectTimeout);
+            callConnectTimeout = null;
+        }
+    }
+
+    function failCall(reason) {
+        clearCallTimeout();
+        callStatus.textContent = reason;
+        stopCallTimer();
+        stopQualitySampling();
+    }
 
     async function getIceServers() {
         if (cachedIceServers) return cachedIceServers;
@@ -511,7 +546,6 @@
             const response = await fetch("/Chat/IceServers");
             const data = await response.json();
             cachedIceServers = data.iceServers;
-            console.log("[WebRTC] ICE servers loaded:", cachedIceServers);
         } catch (error) {
             console.error("Could not load ICE servers, falling back to STUN only.", error);
             cachedIceServers = [{ urls: "stun:stun.l.google.com:19302" }];
@@ -527,31 +561,31 @@
             const iceServers = await getIceServers();
             peerConnection = new RTCPeerConnection({ iceServers });
 
-            peerConnection.onicecandidate = async (event) => {
-                if (!event.candidate) {
-                    console.log("[WebRTC] ICE gathering complete");
-                    return;
-                }
+            peerConnection.onicecandidate = (event) => {
+                if (!event.candidate) return;
 
-                console.log("[WebRTC] local ICE candidate:", event.candidate.type, event.candidate.protocol, event.candidate.address);
+                if (event.candidate.type === "relay") sawRelayCandidate = true;
 
-                await connection.invoke(
-                    "SendIceCandidate",
-                    conversationId,
-                    JSON.stringify(event.candidate)
+                // Not awaited: this fires from the ICE agent, and an
+                // unhandled rejection here would silently drop a candidate
+                // and quietly cost us a working connection.
+                connection
+                    .invoke("SendIceCandidate", conversationId, JSON.stringify(event.candidate))
+                    .catch((error) => console.error("Could not deliver ICE candidate:", error));
+            };
+
+            // Surfaces the real reason a STUN/TURN server didn't work
+            // (401 = bad TURN credentials, 701 = unreachable) instead of
+            // leaving the call to hang with no explanation.
+            peerConnection.onicecandidateerror = (event) => {
+                console.warn(
+                    `[WebRTC] ICE server ${event.url} failed: ${event.errorCode} ${event.errorText}`
                 );
             };
 
-            peerConnection.onicegatheringstatechange = () => {
-                console.log("[WebRTC] ICE gathering state:", peerConnection.iceGatheringState);
-            };
-
             peerConnection.oniceconnectionstatechange = () => {
-                console.log("[WebRTC] ICE connection state:", peerConnection.iceConnectionState);
-
                 if (peerConnection.iceConnectionState === "failed") {
-                    console.warn("[WebRTC] ICE failed -- attempting restart");
-                    peerConnection.restartIce();
+                    failCall("Couldn't establish a connection.");
                 }
             };
 
@@ -570,16 +604,14 @@
 
             peerConnection.onconnectionstatechange = () => {
                 const state = peerConnection.connectionState;
-                console.log("[WebRTC] connection state:", state);
 
                 if (state === "connected") {
+                    clearCallTimeout();
                     callStatus.textContent = "Connected";
                     startCallTimer();
                     startQualitySampling();
                 } else if (state === "failed") {
-                    callStatus.textContent = "Connection failed";
-                    stopCallTimer();
-                    stopQualitySampling();
+                    failCall("Connection failed");
                 } else if (state === "disconnected") {
                     callStatus.textContent = "Reconnecting...";
                     stopQualitySampling();
@@ -722,6 +754,7 @@
     function cleanupVoiceCall() {
         stopCallTimer();
         stopQualitySampling();
+        clearCallTimeout();
         callTimer.style.display = "none";
         callStartedAt = null;
         callBar.classList.remove("show");
@@ -744,6 +777,7 @@
 
         remoteDescriptionSet = false;
         pendingIceCandidates = [];
+        sawRelayCandidate = false;
         isMuted = false;
         setMuteIcon();
     }
@@ -840,6 +874,7 @@
             await setupVoiceConnection();
             const offer = await peerConnection.createOffer();
             await peerConnection.setLocalDescription(offer);
+            startCallTimeout();
             await connection.invoke("SendVoiceOffer", conversationId, JSON.stringify(offer));
         } catch (error) {
             console.error("Accept call error:", error);
@@ -882,6 +917,10 @@
     });
 
     connection.on("ReceiveVoiceOffer", async (offer) => {
+        // An offer can arrive after we've hung up or declined, in which case
+        // there is no peer connection left to apply it to.
+        if (!peerConnection) return;
+
         try {
             const remoteOffer = JSON.parse(offer);
             await peerConnection.setRemoteDescription(new RTCSessionDescription(remoteOffer));
@@ -890,15 +929,20 @@
 
             const answer = await peerConnection.createAnswer();
             await peerConnection.setLocalDescription(answer);
-            await connection.invoke("SendVoiceAnswer", conversationId, JSON.stringify(answer));
 
             callStatus.textContent = "Connecting...";
+            startCallTimeout();
+
+            await connection.invoke("SendVoiceAnswer", conversationId, JSON.stringify(answer));
         } catch (error) {
             console.error("Handle offer error:", error);
+            failCall("Couldn't start the call.");
         }
     });
 
     connection.on("ReceiveVoiceAnswer", async (answer) => {
+        if (!peerConnection) return;
+
         try {
             const remoteAnswer = JSON.parse(answer);
             await peerConnection.setRemoteDescription(new RTCSessionDescription(remoteAnswer));
@@ -908,6 +952,7 @@
             callStatus.textContent = "Connecting...";
         } catch (error) {
             console.error("Handle answer error:", error);
+            failCall("Couldn't start the call.");
         }
     });
 
@@ -936,7 +981,14 @@
     // unload, so this is a plain HTTP fallback via sendBeacon (fire-and-
     // forget, survives navigation) that ends the conversation server-side.
 
-    window.addEventListener("pagehide", () => {
+    window.addEventListener("pagehide", (event) => {
+        // event.persisted means the page is going into the back/forward
+        // cache rather than being torn down -- which is also what happens
+        // when a mobile user switches apps mid-call. Ending the
+        // conversation there would hang up on them for backgrounding the
+        // browser, so only a real teardown counts as leaving.
+        if (event.persisted) return;
+
         if (conversationEnded || !requestToken) return;
 
         const formData = new FormData();

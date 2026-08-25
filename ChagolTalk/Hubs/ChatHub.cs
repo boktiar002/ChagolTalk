@@ -542,6 +542,15 @@ namespace ChagolTalk.Hubs
             await Clients.OthersInGroup(conversationId.ToString()).SendAsync("VoiceCallEnded");
         }
 
+        /// <summary>
+        /// WebRTC signalling is chatty -- a single call trickles a dozen or
+        /// more ICE candidates per side, and this used to hit the database
+        /// on every one of them. Against a hosted Postgres that added
+        /// hundreds of milliseconds to each candidate, delaying them enough
+        /// that the ICE agent could give up before the good ones arrived.
+        /// Conversation membership can't change while a connection is alive,
+        /// so a successful check is cached for the life of the connection.
+        /// </summary>
         private async Task<bool> IsActiveParticipant(Guid conversationId)
         {
             var userId = UserId;
@@ -549,7 +558,13 @@ namespace ChagolTalk.Hubs
             if (string.IsNullOrEmpty(userId))
                 return false;
 
+            var cacheKey = $"Participant:{conversationId}";
+
+            if (Context.Items.ContainsKey(cacheKey))
+                return true;
+
             var conversation = await _context.Conversations
+                .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Id == conversationId);
 
             if (conversation == null || conversation.Status == ConversationStatus.Ended)
@@ -558,6 +573,7 @@ namespace ChagolTalk.Hubs
             if (!conversation.HasParticipant(userId))
                 throw new HubException("You are not a participant in this conversation.");
 
+            Context.Items[cacheKey] = true;
             return true;
         }
     }

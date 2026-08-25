@@ -5,12 +5,18 @@
 .chat-page {
     position: fixed;
     inset: 0;
-    background: #08090d;
-    color: #f5f5f5;
+    color: var(--text, #f8fafc);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     padding-top: 85px;
+    /* Two very low-opacity accent glows over the base colour give the room
+       some depth, so it reads as a lit space instead of a flat black box.
+       Kept subtle enough that message text contrast is unaffected. */
+    background:
+        radial-gradient(900px 600px at 12% -10%, rgba(91,141,239,.10), transparent 60%),
+        radial-gradient(760px 520px at 88% 108%, rgba(139,92,246,.09), transparent 62%),
+        var(--bg, #090b10);
 }
 
 .chat-topbar {
@@ -19,8 +25,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 28px;
-    border-bottom: 1px solid rgba(255,255,255,.07);
-    background: rgba(8,9,13,.92);
+    border-bottom: 1px solid var(--border, rgba(255,255,255,.07));
+    background: linear-gradient(180deg, rgba(18,21,29,.94), rgba(9,11,16,.88));
     backdrop-filter: blur(18px);
     z-index: 5;
     gap: 12px;
@@ -32,15 +38,18 @@
     gap: 12px;
 }
 
+/* Mirrors the .brand-goat badge in the main site header so the call room
+   doesn't look like a different product. */
 .brand-icon {
     width: 40px;
     height: 40px;
-    border-radius: 13px;
+    border-radius: 12px;
     display: grid;
     place-items: center;
-    background: linear-gradient(135deg,#ffffff,#bfc4d0);
-    color: #08090d;
-    font-size: 20px;
+    background: linear-gradient(160deg, rgba(255,255,255,.09), rgba(255,255,255,.01)), var(--surface2, #1a1f2b);
+    border: 1px solid var(--border, #262b38);
+    box-shadow: 0 4px 16px rgba(91,141,239,.18);
+    font-size: 21px;
 }
 
 .brand-name {
@@ -433,10 +442,11 @@
 
     .message.stranger {
         align-self: flex-start;
-        background: #171a22;
-        border: 1px solid rgba(255,255,255,.055);
+        background: linear-gradient(160deg, rgba(255,255,255,.05), rgba(255,255,255,.015)), var(--surface, #12151d);
+        border: 1px solid var(--border, rgba(255,255,255,.055));
         border-bottom-left-radius: 5px;
         color: #e9ebef;
+        box-shadow: 0 2px 10px rgba(0,0,0,.25);
     }
 
     .message.me {
@@ -444,6 +454,7 @@
         background: var(--accent-gradient, linear-gradient(135deg,#5b8def,#8b5cf6));
         color: #fff;
         border-bottom-right-radius: 5px;
+        box-shadow: 0 4px 16px rgba(91,141,239,.28);
     }
 
 .message-author {
@@ -523,16 +534,16 @@
     align-items: center;
     gap: 10px;
     padding: 7px 8px 7px 17px;
-    background: #14161d;
-    border: 1px solid rgba(255,255,255,.08);
+    background: linear-gradient(160deg, rgba(255,255,255,.045), rgba(255,255,255,.012)), var(--surface, #12151d);
+    border: 1px solid var(--border, rgba(255,255,255,.08));
     border-radius: 18px;
     box-shadow: 0 12px 40px rgba(0,0,0,.28);
     transition: border-color .2s ease, box-shadow .2s ease;
 }
 
     .composer:focus-within {
-        border-color: rgba(255,255,255,.18);
-        box-shadow: 0 12px 45px rgba(0,0,0,.4);
+        border-color: rgba(91,141,239,.45);
+        box-shadow: 0 12px 45px rgba(0,0,0,.4), 0 0 0 3px rgba(91,141,239,.12);
     }
 
 #messageInput {
@@ -699,7 +710,10 @@
     position: fixed;
     inset: 0;
     z-index: 1000;
-    background: radial-gradient( circle at center, #202431 0%, #0b0d12 45%, #08090d 100% );
+    background:
+        radial-gradient(700px 700px at 50% 38%, rgba(91,141,239,.16), transparent 60%),
+        radial-gradient(600px 600px at 50% 100%, rgba(139,92,246,.12), transparent 65%),
+        radial-gradient(circle at center, #161a24 0%, #0b0d12 55%, #07080c 100%);
     color: white;
     display: flex;
     align-items: center;

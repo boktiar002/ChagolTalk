@@ -13,13 +13,12 @@ namespace ChagolTalk.Options
     {
         public const string SectionName = "TurnServer";
 
-        /// <summary>Single TURN URL. Ignored when Urls is set.</summary>
-        public string Url { get; set; } = string.Empty;
-
         /// <summary>
-        /// Multiple TURN URLs sharing one username/credential (e.g. Metered
-        /// gives you turn:.../udp, turn:.../tcp and turns:.../443 for a
-        /// single account) -- semicolon separated so it fits one env var.
+        /// One or more TURN URLs sharing a username/credential, semicolon
+        /// separated so the whole set fits in a single environment variable.
+        /// Providers typically hand out several endpoints for one account
+        /// (UDP, TCP, and TLS on 443) and offering all of them meaningfully
+        /// improves the odds of getting through a restrictive firewall.
         /// </summary>
         public string Urls { get; set; } = string.Empty;
 

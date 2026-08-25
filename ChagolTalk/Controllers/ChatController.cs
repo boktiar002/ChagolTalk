@@ -98,17 +98,17 @@ namespace ChagolTalk.Controllers
         [HttpGet]
         public IActionResult IceServers()
         {
+            // Several STUN servers, because a single unreachable one costs
+            // the browser a retransmit cycle before it moves on.
             var servers = new List<object>
             {
-                new { urls = "stun:stun.l.google.com:19302" }
+                new { urls = "stun:stun.l.google.com:19302" },
+                new { urls = "stun:stun1.l.google.com:19302" },
+                new { urls = "stun:stun.cloudflare.com:3478" }
             };
 
             var turnUrls = (_turnOptions.Urls ?? string.Empty)
-                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .ToList();
-
-            if (turnUrls.Count == 0 && !string.IsNullOrWhiteSpace(_turnOptions.Url))
-                turnUrls.Add(_turnOptions.Url);
+                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
             foreach (var url in turnUrls)
             {
