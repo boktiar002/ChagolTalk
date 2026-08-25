@@ -30,6 +30,12 @@
 
 html {
     scroll-behavior: smooth;
+    /* Chrome on Android auto-darkens sites it thinks are light, and that
+       pass re-paints form fields with a light background while leaving our
+       explicit white text alone -- which made typed text invisible on
+       phones. Declaring the scheme tells the browser this page is already
+       dark and to leave its controls alone. */
+    color-scheme: dark;
 }
 
 body {
@@ -338,23 +344,43 @@ input[type="submit"] {
 }
 
 .form-control {
-    background: #0d1017;
+    background-color: #0d1017;
     border: 1px solid var(--border);
-    color: white;
+    color: #ffffff;
+    /* iOS honours -webkit-text-fill-color over `color` on inputs, so both
+       are set -- otherwise typed text can render invisible there. */
+    -webkit-text-fill-color: #ffffff;
+    -webkit-appearance: none;
+    appearance: none;
     border-radius: var(--radius-md);
     padding: 13px 15px;
+    /* 16px keeps iOS Safari from zooming the page in on focus. */
+    font-size: 16px;
     transition: border-color .2s ease, box-shadow .2s ease;
 }
 
     .form-control:focus {
-        background: #0d1017;
-        color: white;
+        background-color: #0d1017;
+        color: #ffffff;
+        -webkit-text-fill-color: #ffffff;
         border-color: var(--primary);
         box-shadow: 0 0 0 .18rem rgba(91,141,239,.22);
     }
 
     .form-control::placeholder {
         color: var(--text3);
+        -webkit-text-fill-color: var(--text3);
+        opacity: 1;
+    }
+
+    /* Autofill paints its own near-white background and would otherwise
+       leave white-on-white text. */
+    .form-control:-webkit-autofill,
+    .form-control:-webkit-autofill:hover,
+    .form-control:-webkit-autofill:focus {
+        -webkit-text-fill-color: #ffffff;
+        -webkit-box-shadow: 0 0 0 1000px #0d1017 inset;
+        caret-color: #ffffff;
     }
 
 /* ==========================================
@@ -602,16 +628,75 @@ a {
 }
 
 @media (max-width: 640px) {
+    /* On a phone the "Start Talking" button was landing below the fold,
+       so people had to scroll to find the one thing the page is for.
+       The hero becomes an explicit column: everything above the button is
+       tightened, and the live-stats row (nice to have, not the point)
+       moves below it. */
+    .ct-main {
+        padding: 20px 0 40px;
+    }
+
     .hero {
-        padding: 5px 0 45px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 0 0 36px;
+    }
+
+    .hero-badge {
+        order: 1;
+        font-size: 12px;
+        padding: 6px 13px;
+        margin-bottom: 14px;
+        line-height: 1.45;
     }
 
     .hero-title {
-        font-size: 38px;
-        letter-spacing: -1px;
+        order: 2;
+        font-size: 31px;
+        letter-spacing: -.8px;
+        line-height: 1.2;
+        margin-bottom: 12px;
+    }
+
+    .hero-title .accent {
+        margin-top: 6px;
     }
 
     .hero-description {
+        order: 3;
+        font-size: 14.5px;
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+
+    .hero-buttons {
+        order: 4;
+        width: 100%;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .hero-buttons .btn-lg {
+        width: 100%;
+        padding: 16px 22px;
         font-size: 16px;
+    }
+
+    .live-stats-row {
+        order: 5;
+        margin: 0 auto;
+    }
+
+    .live-stats-row span {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .how-it-works,
+    .features {
+        gap: 14px;
     }
 }

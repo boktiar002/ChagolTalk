@@ -554,12 +554,118 @@
         return cachedIceServers;
     }
 
+    // Nudges Opus toward conversational voice: minptime=10 lets the sender
+    // use 10ms packets instead of 20ms (halving packetisation delay), and
+    // in-band FEC repairs small losses without waiting on a retransmit.
+    // Only ever appends parameters the far end didn't already specify.
+    function tuneOpusForLatency(sdp) {
+        const rtpmap = sdp.match(/a=rtpmap:(\d+) opus\/48000/);
+        if (!rtpmap) return sdp;
+
+        const pt = rtpmap[1];
+        const desired = ["minptime=10", "useinbandfec=1", "stereo=0"];
+        const fmtpRe = new RegExp("a=fmtp:" + pt + " ([^\\r\\n]*)");
+        const existing = sdp.match(fmtpRe);
+
+        if (existing) {
+            const params = existing[1].split(";").map((s) => s.trim()).filter(Boolean);
+            const keys = new Set(params.map((p) => p.split("=")[0]));
+
+            desired.forEach((d) => {
+                if (!keys.has(d.split("=")[0])) params.push(d);
+            });
+
+            return sdp.replace(fmtpRe, "a=fmtp:" + pt + " " + params.join(";"));
+        }
+
+        return sdp.replace(
+            new RegExp("(a=rtpmap:" + pt + " opus/48000[^\\r\\n]*\\r?\\n)"),
+            "$1a=fmtp:" + pt + " " + desired.join(";") + "\r\n"
+        );
+    }
+
+    // Chrome buffers received audio before playing it to smooth out jitter.
+    // The default target is tuned for media playback, not conversation, and
+    // adds audible delay -- asking for the minimum lets it adapt upward only
+    // when the network actually demands it.
+    function minimisePlayoutDelay() {
+        if (!peerConnection) return;
+
+        peerConnection.getReceivers().forEach((receiver) => {
+            if (!receiver.track || receiver.track.kind !== "audio") return;
+
+            try {
+                if ("jitterBufferTarget" in receiver) {
+                    receiver.jitterBufferTarget = 0;
+                } else if ("playoutDelayHint" in receiver) {
+                    receiver.playoutDelayHint = 0;
+                }
+            } catch (error) {
+                /* hint only -- the call is fine without it */
+            }
+        });
+    }
+
+    // Whether a call went peer-to-peer or is bouncing through the TURN
+    // relay is the single biggest factor in how laggy it feels, so say so
+    // once per call instead of leaving it a mystery.
+    async function reportSelectedRoute() {
+        if (!peerConnection) return;
+
+        try {
+            const stats = await peerConnection.getStats();
+            const candidates = new Map();
+            let pair = null;
+
+            stats.forEach((report) => {
+                if (report.type === "local-candidate" || report.type === "remote-candidate") {
+                    candidates.set(report.id, report);
+                }
+                if (report.type === "candidate-pair" && report.state === "succeeded" && report.nominated) {
+                    pair = report;
+                }
+            });
+
+            if (!pair) return;
+
+            const local = candidates.get(pair.localCandidateId);
+            const remote = candidates.get(pair.remoteCandidateId);
+            const relayed = local?.candidateType === "relay" || remote?.candidateType === "relay";
+            const rtt = typeof pair.currentRoundTripTime === "number"
+                ? ` rtt=${Math.round(pair.currentRoundTripTime * 1000)}ms`
+                : "";
+
+            console.log(
+                `[WebRTC] route: ${local?.candidateType} <-> ${remote?.candidateType}${rtt}` +
+                    (relayed ? " (relayed through TURN, so latency is higher)" : " (direct peer-to-peer)")
+            );
+        } catch (error) {
+            /* diagnostic only */
+        }
+    }
+
     async function setupVoiceConnection() {
         try {
-            localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            localStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                },
+                video: false,
+            });
 
             const iceServers = await getIceServers();
-            peerConnection = new RTCPeerConnection({ iceServers });
+
+            peerConnection = new RTCPeerConnection({
+                iceServers,
+                // Starts gathering candidates as soon as the connection
+                // exists rather than at setLocalDescription. The caller sits
+                // idle while the callee decides whether to pick up, so this
+                // turns most of the ringing time into useful work and the
+                // call connects noticeably faster once accepted.
+                iceCandidatePoolSize: 4,
+            });
 
             peerConnection.onicecandidate = (event) => {
                 if (!event.candidate) return;
@@ -600,6 +706,7 @@
                 }
 
                 remoteAudio.srcObject = event.streams[0];
+                minimisePlayoutDelay();
             };
 
             peerConnection.onconnectionstatechange = () => {
@@ -610,6 +717,8 @@
                     callStatus.textContent = "Connected";
                     startCallTimer();
                     startQualitySampling();
+                    minimisePlayoutDelay();
+                    reportSelectedRoute();
                 } else if (state === "failed") {
                     failCall("Connection failed");
                 } else if (state === "disconnected") {
@@ -872,10 +981,14 @@
 
         try {
             await setupVoiceConnection();
+
             const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
+            const tunedOffer = { type: offer.type, sdp: tuneOpusForLatency(offer.sdp) };
+
+            await peerConnection.setLocalDescription(tunedOffer);
             startCallTimeout();
-            await connection.invoke("SendVoiceOffer", conversationId, JSON.stringify(offer));
+
+            await connection.invoke("SendVoiceOffer", conversationId, JSON.stringify(tunedOffer));
         } catch (error) {
             console.error("Accept call error:", error);
             callScreen.style.display = "none";
@@ -928,12 +1041,14 @@
             await flushPendingIceCandidates();
 
             const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
+            const tunedAnswer = { type: answer.type, sdp: tuneOpusForLatency(answer.sdp) };
+
+            await peerConnection.setLocalDescription(tunedAnswer);
 
             callStatus.textContent = "Connecting...";
             startCallTimeout();
 
-            await connection.invoke("SendVoiceAnswer", conversationId, JSON.stringify(answer));
+            await connection.invoke("SendVoiceAnswer", conversationId, JSON.stringify(tunedAnswer));
         } catch (error) {
             console.error("Handle offer error:", error);
             failCall("Couldn't start the call.");
