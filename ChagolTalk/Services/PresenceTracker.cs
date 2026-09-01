@@ -47,5 +47,15 @@ namespace ChagolTalk.Services
                 return false;
             }
         }
+
+        public bool IsOnline(string userId)
+        {
+            // Entries are removed as soon as their last connection drops, so
+            // presence is just "do we still have a bucket for them".
+            lock (_lock)
+            {
+                return _connections.TryGetValue(userId, out var set) && set.Count > 0;
+            }
+        }
     }
 }

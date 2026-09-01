@@ -64,6 +64,27 @@ namespace ChagolTalk.Data
 
             builder.Entity<Report>()
                 .HasIndex(r => r.ReportedUserId);
+
+            // Declared explicitly even though it matches the one EF creates by
+            // convention for the FK. The filtered composite index below leads
+            // with ReporterId, so EF considers this redundant and drops it --
+            // but a filtered index can't serve lookups on rows the filter
+            // excludes, and dropping an index on a live table is not something
+            // this migration should be doing as a side effect.
+            builder.Entity<Report>()
+                .HasIndex(r => r.ReporterId);
+
+            // Database-level backing for the duplicate check in ChatHub.
+            // SignalR runs one invocation at a time per connection, so the
+            // in-hub check already covers the realistic abuse case, but a user
+            // with two tabs open holds two connections and could still race
+            // past it. This makes the second insert fail rather than count.
+            // Filtered because ConversationId is nullable and reports that
+            // aren't tied to a conversation shouldn't collide with each other.
+            builder.Entity<Report>()
+                .HasIndex(r => new { r.ReporterId, r.ConversationId })
+                .IsUnique()
+                .HasFilter("\"ConversationId\" IS NOT NULL");
         }
     }
 }

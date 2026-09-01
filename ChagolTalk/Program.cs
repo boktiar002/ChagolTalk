@@ -77,6 +77,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddSingleton<IMatchingService, MatchingService>();
 builder.Services.AddSingleton<IPresenceTracker, PresenceTracker>();
 builder.Services.AddHostedService<QueueJanitorService>();
+builder.Services.AddHostedService<ConversationJanitorService>();
 
 builder.Services.Configure<TurnServerOptions>(
     builder.Configuration.GetSection(TurnServerOptions.SectionName));

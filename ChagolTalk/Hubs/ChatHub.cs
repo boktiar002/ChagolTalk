@@ -143,14 +143,34 @@ namespace ChagolTalk.Hubs
                 return;
             }
 
+            // The lobby is a single button with no interest or language
+            // pickers, so it sends neither -- whatever the user saved on their
+            // profile is the only matching signal the server will ever get.
+            // Falling back to it is what makes the scoring in MatchingService
+            // do anything at all.
+            //
+            // Mode is deliberately NOT taken from user.PreferredMode. Interests
+            // and language only add to a candidate's score, so a stale value
+            // there can never stop someone being matched. Mode *filters* who is
+            // eligible, and PreferredMode defaults to Voice for everyone
+            // (guests included), so honouring it here would split the pool back
+            // into the segments the one-button lobby exists to avoid.
+            var effectiveInterests = string.IsNullOrWhiteSpace(interests)
+                ? user.Interests
+                : interests;
+
+            var effectiveLanguage = string.IsNullOrWhiteSpace(language)
+                ? user.Language
+                : language;
+
             var waitingUser = new WaitingUser
             {
                 UserId = userId,
                 ConnectionId = Context.ConnectionId,
                 DisplayName = user.DisplayName ?? "Stranger",
                 Mode = ParseMode(mode),
-                Language = language,
-                Interests = (interests ?? string.Empty)
+                Language = effectiveLanguage,
+                Interests = (effectiveInterests ?? string.Empty)
                     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                     .Take(10)
                     .ToHashSet(StringComparer.OrdinalIgnoreCase)
@@ -433,6 +453,22 @@ namespace ChagolTalk.Hubs
             if (conversation == null || !conversation.HasParticipant(userId))
                 return;
 
+            // One report per conversation per reporter. Without this the
+            // auto-mute below is a weapon rather than a safeguard: SubmitReport
+            // has no cooldown of its own, so a single user could call it five
+            // times against whoever they were just matched with and silence
+            // that person for an hour.
+            var alreadyReported = await _context.Reports.AnyAsync(r =>
+                r.ReporterId == userId && r.ConversationId == conversationId);
+
+            if (alreadyReported)
+            {
+                // Acknowledged exactly like a first report -- there is nothing
+                // to gain from telling someone their duplicate was dropped.
+                await Clients.Caller.SendAsync("ReportSubmitted");
+                return;
+            }
+
             var reportedUserId = conversation.OtherUserId(userId);
 
             var report = new Report
@@ -462,7 +498,19 @@ namespace ChagolTalk.Hubs
                 }
             }
 
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                // Lost a race against another connection belonging to the same
+                // user -- the unique index rejected the duplicate, which is the
+                // outcome we wanted anyway. Both the report row and the
+                // ReportCount increment roll back together. Answered as success
+                // because the client leaves its button stuck on "Sending..."
+                // whenever an invoke throws.
+            }
 
             await Clients.Caller.SendAsync("ReportSubmitted");
         }
