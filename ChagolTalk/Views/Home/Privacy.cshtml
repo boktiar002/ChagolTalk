@@ -11,37 +11,76 @@
 
         <h3 class="section-title">What we collect</h3>
         <p class="text-muted">
-            An account (username and password), an optional profile (display name, bio,
-            interests, language), and the text messages you send during a conversation
-            so the chat can function. We do not record or store voice call audio &mdash;
-            voice runs peer-to-peer directly between the two participants.
+            A username and your age. Registered accounts give a full date of birth and a
+            password; guest sessions started from the home page give a display name and
+            the year they were born, and have no password. Optionally, a profile: bio,
+            country, interests, language and a generated avatar. We also store the text
+            messages you send during a conversation, and basic counts such as how many
+            conversations you have had and how long you have spent on voice calls.
         </p>
 
-        <h3 class="section-title">Microphone access</h3>
+        <h3 class="section-title">Age</h3>
         <p class="text-muted">
-            Voice calls use WebRTC. Your browser asks for microphone permission only when
-            you start or accept a call. Audio streams directly to the other participant
-            and is never routed through or stored on our servers.
+            You must be at least @AppSettings.MinimumAge years
+            old to use @AppSettings.AppName. We ask for your
+            date of birth when you create an account, and the year you were born when you
+            start a guest session, and we store what you give us. If we learn that an
+            account belongs to someone below the minimum age, we will remove it.
+        </p>
+
+        <h3 class="section-title">Voice calls</h3>
+        <p class="text-muted">
+            Voice runs over WebRTC. Your browser asks for microphone permission only when
+            you start or accept a call. <strong>We never record or store call audio.</strong>
+        </p>
+        <p class="text-muted">
+            Where your two networks allow it, audio travels directly between you and the
+            other participant. Often they do not &mdash; mobile networks and many home
+            routers block a direct connection &mdash; and in that case the audio is
+            forwarded through a third-party relay server (a TURN relay) so the call can
+            connect at all. The relay passes the audio through in real time and does not
+            record it, but it is a third party in the path, and we would rather say so
+            than describe every call as private end-to-end when it is not.
         </p>
 
         <h3 class="section-title">Conversations &amp; matching</h3>
         <p class="text-muted">
-            You're paired with a random stranger, optionally filtered by shared interests
-            or language. Messages are kept only to support the conversation and basic
-            moderation (like reviewing reports); they are not shared with third parties.
+            You are paired with a random stranger. Any interests and language saved on
+            your profile are used to prefer a better match, but never to identify you to
+            the other person &mdash; they see your display name and any interests you
+            both share, nothing else.
+        </p>
+        <p class="text-muted">
+            Text messages are stored in our database so the conversation works and so
+            reports can be reviewed. They are kept until the account is deleted; they are
+            not sold, and not shared with third parties.
         </p>
 
         <h3 class="section-title">Reporting &amp; moderation</h3>
         <p class="text-muted">
-            You can report anyone you're matched with. Reports are used to review and,
-            where necessary, restrict accounts. Repeated or serious reports may result
-            in a temporary or permanent suspension.
+            You can report anyone you are matched with, once per conversation. Reports are
+            used to review and, where necessary, restrict accounts. Repeated reports may
+            result in a temporary restriction on starting new chats, and serious or
+            repeated cases in a permanent suspension.
         </p>
 
         <h3 class="section-title">Your data</h3>
         <p class="text-muted">
-            You can edit or clear most of your profile at any time from your dashboard.
-            Contact us if you'd like your account and associated data removed entirely.
+            You can edit or clear most of your profile at any time from your account.
+            @if (!string.IsNullOrWhiteSpace(AppSettings.ContactEmail))
+            {
+                <text>
+                    To have your account and its associated data removed entirely, email
+                    <a href="mailto:@AppSettings.ContactEmail">@AppSettings.ContactEmail</a>.
+                </text>
+            }
+            else
+            {
+                <text>
+                    To have your account and its associated data removed entirely, get in
+                    touch with us.
+                </text>
+            }
         </p>
 
     </div>

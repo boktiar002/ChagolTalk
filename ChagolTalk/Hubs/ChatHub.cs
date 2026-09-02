@@ -92,19 +92,29 @@ namespace ChagolTalk.Hubs
                     }
 
                     await Clients.All.SendAsync("OnlineCount", _presence.OnlineCount);
-                }
 
-                // If they were mid-conversation, let the other side know so
-                // they are not left staring at a dead screen.
-                var activeConversation = await _context.Conversations
-                    .Where(c => c.Status == ConversationStatus.Active)
-                    .Where(c => c.User1Id == userId || c.User2Id == userId)
-                    .FirstOrDefaultAsync();
+                    // If they were mid-conversation, let the other side know so
+                    // they are not left staring at a dead screen.
+                    //
+                    // Only once their LAST connection has gone. Walking from
+                    // the lobby into the room means holding two connections
+                    // for a moment, and announcing the old one's death told
+                    // the partner their stranger had left at the exact instant
+                    // they were arriving. Worse, that stale disconnect is
+                    // often processed *after* the room connection has already
+                    // sent StrangerReconnected, so nothing was left to clear
+                    // the banner and it stuck for the whole conversation.
+                    var activeConversation = await _context.Conversations
+                        .Where(c => c.Status == ConversationStatus.Active)
+                        .Where(c => c.User1Id == userId || c.User2Id == userId)
+                        .OrderByDescending(c => c.StartedAt)
+                        .FirstOrDefaultAsync();
 
-                if (activeConversation != null)
-                {
-                    await Clients.OthersInGroup(activeConversation.Id.ToString())
-                        .SendAsync("StrangerDisconnected");
+                    if (activeConversation != null)
+                    {
+                        await Clients.OthersInGroup(activeConversation.Id.ToString())
+                            .SendAsync("StrangerDisconnected");
+                    }
                 }
             }
 

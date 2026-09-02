@@ -9,7 +9,9 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    padding-top: 85px;
+    padding-top: calc(85px + var(--safe-top));
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
     /* Two very low-opacity accent glows over the base colour give the room
        some depth, so it reads as a lit space instead of a flat black box.
        Kept subtle enough that message text contrast is unaffected. */
@@ -43,17 +45,17 @@
 .brand-icon {
     width: 40px;
     height: 40px;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     display: grid;
     place-items: center;
     background: linear-gradient(160deg, rgba(255,255,255,.09), rgba(255,255,255,.01)), var(--surface2, #1a1f2b);
     border: 1px solid var(--border, #262b38);
     box-shadow: 0 4px 16px rgba(91,141,239,.18);
-    font-size: 21px;
+    font-size: var(--fs-xl);
 }
 
 .brand-name {
-    font-size: 17px;
+    font-size: var(--fs-lg);
     font-weight: 700;
     letter-spacing: -.3px;
 }
@@ -75,12 +77,12 @@
     place-items: center;
     background: linear-gradient(145deg,#242734,#11131a);
     border: 1px solid rgba(255,255,255,.09);
-    font-size: 18px;
+    font-size: var(--fs-lg);
     flex-shrink: 0;
 }
 
 .stranger-name {
-    font-size: 14px;
+    font-size: var(--fs-base);
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
@@ -88,8 +90,8 @@
 }
 
 .status {
-    font-size: 11px;
-    color: #8e96a8;
+    font-size: var(--fs-2xs);
+    color: var(--text-muted);
     margin-top: 2px;
     white-space: nowrap;
 }
@@ -125,18 +127,18 @@
     border: 1px solid rgba(255,255,255,.1);
     background: rgba(255,255,255,.035);
     color: #aeb4c1;
-    border-radius: 10px;
+    border-radius: var(--radius-xs);
     width: 38px;
     height: 38px;
     display: grid;
     place-items: center;
     cursor: pointer;
     transition: .2s ease;
-    font-size: 15px;
+    font-size: var(--fs-md);
 }
 
     .icon-button:hover {
-        color: #fff;
+        color: var(--white);
         background: rgba(255,255,255,.08);
         border-color: rgba(255,255,255,.18);
     }
@@ -145,16 +147,16 @@
     border: 1px solid rgba(217,75,85,.3);
     background: rgba(217,75,85,.08);
     color: #ff8790;
-    border-radius: 10px;
+    border-radius: var(--radius-xs);
     padding: 9px 15px;
-    font-size: 12px;
+    font-size: var(--fs-xs);
     cursor: pointer;
     transition: .2s ease;
     white-space: nowrap;
 }
 
     .end-button:hover {
-        color: #fff;
+        color: var(--white);
         background: rgba(217,75,85,.22);
         border-color: rgba(217,75,85,.5);
     }
@@ -163,9 +165,9 @@
     border: 0;
     background: #f1f2f4;
     color: #08090d;
-    border-radius: 10px;
+    border-radius: var(--radius-xs);
     padding: 9px 16px;
-    font-size: 12px;
+    font-size: var(--fs-xs);
     font-weight: 700;
     cursor: pointer;
     transition: .2s ease;
@@ -176,7 +178,7 @@
 }
 
     .skip-button:hover {
-        background: #fff;
+        background: var(--white);
         transform: translateY(-1px);
     }
 
@@ -187,7 +189,7 @@
     }
 
 .skip-icon {
-    font-size: 13px;
+    font-size: var(--fs-sm);
 }
 
 /* ---------- Connection quality ---------- */
@@ -227,7 +229,7 @@
     padding: 9px 16px;
     background: rgba(224,179,87,.12);
     color: #f0c877;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     border-bottom: 1px solid rgba(224,179,87,.18);
 }
 
@@ -261,9 +263,9 @@
     border: 1px solid transparent;
     background:
         linear-gradient(#0d0f16, #0d0f16) padding-box,
-        var(--accent-gradient, linear-gradient(135deg,#5b8def,#8b5cf6)) border-box;
-    color: #fff;
-    border-radius: 16px;
+        var(--accent-gradient, linear-gradient(135deg,var(--primary),var(--primary2))) border-box;
+    color: var(--white);
+    border-radius: var(--radius-md);
     padding: 15px 18px;
     display: flex;
     align-items: center;
@@ -289,12 +291,12 @@
 .call-icon {
     width: 44px;
     height: 44px;
-    border-radius: 13px;
+    border-radius: var(--radius-sm);
     display: grid;
     place-items: center;
-    background: var(--accent-gradient, linear-gradient(135deg,#5b8def,#8b5cf6));
-    color: #fff;
-    font-size: 20px;
+    background: var(--accent-gradient, linear-gradient(135deg,var(--primary),var(--primary2)));
+    color: var(--white);
+    font-size: var(--fs-xl);
     flex-shrink: 0;
 }
 
@@ -305,12 +307,12 @@
 }
 
     .call-text strong {
-        font-size: 14px;
+        font-size: var(--fs-base);
     }
 
     .call-text small {
-        color: #858c9b;
-        font-size: 11px;
+        color: var(--text-muted);
+        font-size: var(--fs-2xs);
     }
 
 /* ---------- Minimized call bar ---------- */
@@ -327,7 +329,7 @@
     padding: 11px 16px;
     background: linear-gradient(135deg, rgba(34,197,94,.12), rgba(34,197,94,.04));
     border: 1px solid rgba(34,197,94,.25);
-    border-radius: 16px;
+    border-radius: var(--radius-md);
 }
 
 .call-bar.show {
@@ -357,7 +359,7 @@
 }
 
 .call-bar-name {
-    font-size: 13px;
+    font-size: var(--fs-sm);
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
@@ -365,7 +367,7 @@
 }
 
 .call-bar-timer {
-    font-size: 12px;
+    font-size: var(--fs-xs);
     color: #9ecfb0;
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
@@ -382,10 +384,10 @@
     width: 34px;
     height: 34px;
     border: 0;
-    border-radius: 10px;
+    border-radius: var(--radius-xs);
     background: rgba(255,255,255,.08);
-    color: #fff;
-    font-size: 14px;
+    color: var(--white);
+    font-size: var(--fs-base);
     cursor: pointer;
     display: grid;
     place-items: center;
@@ -412,6 +414,10 @@
     margin: 0 auto;
     padding: 35px 24px 25px;
     overflow-y: auto;
+    /* Without this, pulling down at the top of the message list triggers the
+       browser's pull-to-refresh and reloads the page -- which on this screen
+       means dropping a live call. */
+    overscroll-behavior-y: contain;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -423,10 +429,10 @@
     align-self: center;
     margin: 15px 0 25px;
     padding: 8px 14px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: rgba(255,255,255,.045);
-    color: #7f8797;
-    font-size: 12px;
+    color: var(--text-muted);
+    font-size: var(--fs-xs);
     text-align: center;
 }
 
@@ -434,7 +440,7 @@
     max-width: min(70%,560px);
     padding: 11px 15px;
     border-radius: 18px;
-    font-size: 14px;
+    font-size: var(--fs-base);
     line-height: 1.55;
     word-wrap: break-word;
     animation: messageIn .2s ease-out;
@@ -451,16 +457,16 @@
 
     .message.me {
         align-self: flex-end;
-        background: var(--accent-gradient, linear-gradient(135deg,#5b8def,#8b5cf6));
-        color: #fff;
+        background: var(--accent-gradient, linear-gradient(135deg,var(--primary),var(--primary2)));
+        color: var(--white);
         border-bottom-right-radius: 5px;
         box-shadow: 0 4px 16px rgba(91,141,239,.28);
     }
 
 .message-author {
     display: block;
-    font-size: 10px;
-    color: #777f90;
+    font-size: var(--fs-2xs);
+    color: var(--text3);
     margin-bottom: 4px;
 }
 
@@ -488,7 +494,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #6b7280;
+    background: var(--text3);
     animation: typingBounce 1.2s infinite ease-in-out;
 }
 
@@ -507,13 +513,13 @@
 }
 
     .empty-hint .big {
-        font-size: 34px;
+        font-size: var(--fs-4xl);
         margin-bottom: 12px;
     }
 
     .empty-hint p {
         margin: 0;
-        font-size: 13px;
+        font-size: var(--fs-sm);
     }
 
 @keyframes messageIn {
@@ -526,7 +532,9 @@
 .composer-wrap {
     width: min(900px,100%);
     margin: 0 auto;
-    padding: 12px 24px 25px;
+    /* The message box is the bottom-most thing on the screen, so it is what
+       lands under the home indicator if the inset is not added here. */
+    padding: 12px 24px calc(25px + var(--safe-bottom));
 }
 
 .composer {
@@ -554,12 +562,12 @@
     background: transparent;
     color: #f5f5f5;
     /* 16px stops iOS Safari from auto-zooming the page on focus. */
-    font-size: 16px;
+    font-size: var(--fs-md);
     padding: 11px 0;
 }
 
     #messageInput::placeholder {
-        color: #666d7b;
+        color: var(--text3);
     }
 
     #messageInput:disabled {
@@ -570,20 +578,20 @@
     width: 42px;
     height: 42px;
     border: 0;
-    border-radius: 13px;
+    border-radius: var(--radius-sm);
     background: #f1f2f4;
     color: #090a0e;
     display: grid;
     place-items: center;
     cursor: pointer;
-    font-size: 17px;
+    font-size: var(--fs-lg);
     transition: transform .15s ease, background .2s ease;
     flex-shrink: 0;
 }
 
     #sendButton:hover {
         transform: translateY(-1px);
-        background: #fff;
+        background: var(--white);
     }
 
     #sendButton:active {
@@ -610,7 +618,7 @@
     padding: 45px 30px;
     border: 1px solid rgba(255,255,255,.08);
     background: #14161d;
-    border-radius: 24px;
+    border-radius: var(--radius-lg);
     box-shadow: 0 20px 60px rgba(0,0,0,.35);
 }
 
@@ -622,18 +630,18 @@
     display: grid;
     place-items: center;
     background: rgba(255,255,255,.06);
-    font-size: 28px;
+    font-size: var(--fs-3xl);
 }
 
 .ended-card h2 {
     margin: 0 0 10px;
-    font-size: 22px;
+    font-size: var(--fs-xl);
 }
 
 .ended-card p {
     margin: 0 0 25px;
-    color: #858c9b;
-    font-size: 14px;
+    color: var(--text-muted);
+    font-size: var(--fs-base);
 }
 
 .ended-actions {
@@ -645,7 +653,7 @@
 
 #findAnotherButton {
     border: 0;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     padding: 12px 22px;
     background: #f1f2f4;
     color: #08090d;
@@ -661,7 +669,7 @@
 
 #reportFromEndedButton {
     border: 1px solid rgba(255,255,255,.12);
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     padding: 12px 22px;
     background: transparent;
     color: #aeb4c1;
@@ -671,13 +679,13 @@
 }
 
     #reportFromEndedButton:hover {
-        color: #fff;
+        color: var(--white);
         border-color: rgba(255,255,255,.3);
     }
 
 #cancelSkipButton {
     border: 1px solid rgba(255,255,255,.12);
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     padding: 12px 22px;
     background: transparent;
     color: #aeb4c1;
@@ -687,12 +695,12 @@
 }
 
     #cancelSkipButton:hover {
-        color: #fff;
+        color: var(--white);
         border-color: rgba(255,255,255,.3);
     }
 
 .finding {
-    color: #858c9b;
+    color: var(--text-muted);
     cursor: default;
 }
 
@@ -718,29 +726,35 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    /* Covers the whole viewport, notch and home indicator included. */
+    padding:
+        calc(20px + var(--safe-top))
+        calc(20px + var(--safe-right))
+        calc(20px + var(--safe-bottom))
+        calc(20px + var(--safe-left));
 }
 
 .minimize-call-button {
     position: absolute;
-    top: max(20px, env(safe-area-inset-top));
-    right: 20px;
+    /* Sits below the notch rather than merely as far down as the notch. */
+    top: calc(20px + var(--safe-top));
+    right: calc(20px + var(--safe-right));
     width: 40px;
     height: 40px;
     border: 1px solid rgba(255,255,255,.12);
     background: rgba(255,255,255,.06);
     color: #d3d7e0;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     display: grid;
     place-items: center;
-    font-size: 16px;
+    font-size: var(--fs-md);
     cursor: pointer;
     transition: .2s ease;
 }
 
     .minimize-call-button:hover {
         background: rgba(255,255,255,.12);
-        color: #fff;
+        color: var(--white);
     }
 
 .call-content {
@@ -758,20 +772,20 @@
     place-items: center;
     background: linear-gradient( 145deg, #292d39, #151820 );
     border: 1px solid rgba(255,255,255,.1);
-    font-size: 45px;
+    font-size: var(--fs-5xl);
     margin-bottom: 24px;
     box-shadow: 0 0 0 15px rgba(91,141,239,.05), 0 0 50px rgba(91,141,239,.15);
 }
 
 .call-name {
-    font-size: 24px;
+    font-size: var(--fs-2xl);
     font-weight: 700;
 }
 
 .call-status {
     margin-top: 8px;
-    color: #858c9b;
-    font-size: 14px;
+    color: var(--text-muted);
+    font-size: var(--fs-base);
 }
 
 .call-controls,
@@ -788,7 +802,7 @@
     border-radius: 50%;
     background: #242833;
     color: white;
-    font-size: 21px;
+    font-size: var(--fs-xl);
     cursor: pointer;
     transition: .2s ease;
 }
@@ -812,8 +826,8 @@
 
 .call-timer {
     margin-top: 8px;
-    font-size: 13px;
-    color: #858c9b;
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
     font-variant-numeric: tabular-nums;
     letter-spacing: .5px;
 }
@@ -837,37 +851,37 @@
     }
 
     #callEndedState .call-ended-icon {
-        font-size: 42px;
+        font-size: var(--fs-5xl);
         margin-bottom: 18px;
     }
 
     #callEndedState h2 {
         margin: 0 0 12px;
-        font-size: 28px;
+        font-size: var(--fs-3xl);
         font-weight: 600;
     }
 
     #callEndedState p {
         margin: 0 0 28px;
-        color: #858c9b;
-        font-size: 14px;
+        color: var(--text-muted);
+        font-size: var(--fs-base);
         line-height: 1.5;
     }
 
 #closeCallButton {
     border: 0;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     padding: 11px 24px;
     background: #f1f2f4;
     color: #08090d;
-    font-size: 14px;
+    font-size: var(--fs-base);
     font-weight: 600;
     cursor: pointer;
     transition: transform .15s ease, background .2s ease;
 }
 
     #closeCallButton:hover {
-        background: #ffffff;
+        background: var(--white);
         transform: translateY(-1px);
     }
 
@@ -916,12 +930,12 @@
 
 .modal-card h3 {
     margin: 0 0 6px;
-    font-size: 18px;
+    font-size: var(--fs-lg);
 }
 
 .modal-card .modal-sub {
-    color: #858c9b;
-    font-size: 13px;
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
     margin: 0 0 18px;
 }
 
@@ -936,9 +950,9 @@
     border: 1px solid rgba(255,255,255,.1);
     background: rgba(255,255,255,.03);
     color: #d3d7e0;
-    border-radius: 10px;
+    border-radius: var(--radius-xs);
     padding: 9px 10px;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     cursor: pointer;
     text-align: left;
     transition: .15s ease;
@@ -958,13 +972,13 @@
     width: 100%;
     resize: none;
     min-height: 70px;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     border: 1px solid rgba(255,255,255,.08);
     background: #0d0e13;
     color: #f5f5f5;
     padding: 10px 12px;
     /* 16px stops iOS Safari from auto-zooming the page on focus. */
-    font-size: 16px;
+    font-size: var(--fs-md);
     font-family: inherit;
     margin-bottom: 16px;
 }
@@ -977,9 +991,9 @@
 
 .modal-actions button {
     border: 0;
-    border-radius: 10px;
+    border-radius: var(--radius-xs);
     padding: 10px 18px;
-    font-size: 13px;
+    font-size: var(--fs-sm);
     font-weight: 600;
     cursor: pointer;
     transition: .15s ease;
@@ -987,12 +1001,12 @@
 
 #cancelReportButton {
     background: transparent;
-    color: #9aa1b1;
+    color: var(--text2);
     border: 1px solid rgba(255,255,255,.1) !important;
 }
 
     #cancelReportButton:hover {
-        color: #fff;
+        color: var(--white);
     }
 
 #confirmReportButton {
@@ -1011,16 +1025,16 @@
 
 #cancelQuickStartButton {
     background: transparent;
-    color: #9aa1b1;
+    color: var(--text2);
     border: 1px solid rgba(255,255,255,.1) !important;
 }
 
     #cancelQuickStartButton:hover {
-        color: #fff;
+        color: var(--white);
     }
 
 #confirmQuickStartButton {
-    background: var(--accent-gradient, linear-gradient(135deg,#5b8def,#8b5cf6));
+    background: var(--accent-gradient, linear-gradient(135deg,var(--primary),var(--primary2)));
     color: white;
     box-shadow: 0 4px 16px rgba(91,141,239,.3);
 }
@@ -1037,7 +1051,10 @@
 
 /* ---------- Responsive ---------- */
 
-@media (max-width: 600px) {
+/* Was 600px; aligned to the 640px phone breakpoint used everywhere else so a
+   615px-wide device no longer gets the phone chat layout with a desktop hero
+   behind it. See the breakpoint note in site.css. */
+@media (max-width: 640px) {
 
     .chat-topbar {
         height: 64px;
@@ -1055,12 +1072,12 @@
 
     .end-button {
         padding: 8px 10px;
-        font-size: 11px;
+        font-size: var(--fs-2xs);
     }
 
     .skip-button {
         padding: 8px 11px;
-        font-size: 11px;
+        font-size: var(--fs-2xs);
     }
 
     .topbar-actions {
@@ -1076,7 +1093,12 @@
     }
 
     .composer-wrap {
-        padding: 8px 12px 15px;
+        /* The safe-area inset has to be repeated here. This rule overrides the
+           desktop padding wholesale, so writing a plain 15px would drop the
+           home-indicator allowance on exactly the devices that have one --
+           which is what it did before. Any future override of a padding that
+           touches a screen edge has to carry the inset with it. */
+        padding: 8px 12px calc(15px + var(--safe-bottom));
     }
 
     .message {

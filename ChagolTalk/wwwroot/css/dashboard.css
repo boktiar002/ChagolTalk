@@ -16,13 +16,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 38px;
+    font-size: var(--fs-4xl);
     margin: auto;
     margin-bottom: 22px;
 }
 
 .dashboard-card h1 {
-    font-size: 24px;
+    font-size: var(--fs-2xl);
     margin-bottom: 6px;
     letter-spacing: -.3px;
 }
@@ -52,7 +52,7 @@
     }
 
 .stat-value {
-    font-size: 21px;
+    font-size: var(--fs-xl);
     font-weight: 700;
     background: var(--accent-gradient);
     -webkit-background-clip: text;
@@ -61,7 +61,7 @@
 }
 
 .stat-label {
-    font-size: 11px;
+    font-size: var(--fs-2xs);
     color: var(--text2);
     margin-top: 4px;
     text-transform: uppercase;
@@ -79,4 +79,60 @@
 .dashboard-logout {
     padding-top: 18px;
     border-top: 1px solid var(--border);
+}
+
+/* ==========================================
+   PHONE
+   No breakpoint existed here either. 40px of card padding on a 393px screen
+   left the three stat columns about 71px wide each, so "1h 12m" broke onto
+   two lines and every label wrapped -- three ragged boxes of different
+   content heights where the design intends one tidy row.
+   ========================================== */
+@media (max-width: 640px) {
+
+    .dashboard-card {
+        padding: 30px 18px;
+        border-radius: var(--radius-md);
+    }
+
+    .dashboard-avatar {
+        width: 72px;
+        height: 72px;
+        font-size: var(--fs-3xl);
+        margin-bottom: 16px;
+    }
+
+    .dashboard-card h1 {
+        font-size: var(--fs-xl);
+    }
+
+    .dashboard-card > p {
+        margin-bottom: 22px;
+    }
+
+    .dashboard-stats {
+        gap: 8px;
+        margin-bottom: 24px;
+    }
+
+    .stat-box {
+        padding: 14px 4px;
+    }
+
+    .stat-label {
+        /* Tracking is what pushed these labels over the line width; the
+           uppercase styling survives without it at this size. */
+        letter-spacing: .2px;
+    }
+
+    .dashboard-actions {
+        /* Stacked and full width: two buttons side by side on a narrow card
+           leaves each too small to hit comfortably. */
+        flex-direction: column;
+        gap: 10px;
+    }
+
+        .dashboard-actions .btn {
+            width: 100%;
+        }
 }

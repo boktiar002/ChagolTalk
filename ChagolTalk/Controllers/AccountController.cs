@@ -1,3 +1,4 @@
+using ChagolTalk.Helpers;
 using ChagolTalk.Models.Identity;
 using Microsoft.AspNetCore.Authorization;
 using ChagolTalk.ViewModels.Account;
@@ -42,6 +43,7 @@ namespace ChagolTalk.Controllers
             {
                 UserName = model.Username,
                 DisplayName = model.Username,
+                DateOfBirth = BirthDate.Normalise(model.DateOfBirth),
                 AvatarSeed = Guid.NewGuid().ToString("N")[..8],
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -123,13 +125,38 @@ namespace ChagolTalk.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> QuickStart(QuickStartViewModel model)
         {
+            // This action used to read the model by hand and never consult
+            // ModelState, so every data annotation on QuickStartViewModel was
+            // decorative -- including the age check. The quick start creates a
+            // real account and drops straight into matching, so it has to be
+            // validated as strictly as the registration form.
+            // Hands back whatever they typed along with the error, so the modal
+            // reopens filled in. Making someone retype their name because the
+            // year was wrong is just a second chance for them to give up.
+            IActionResult BackToQuickStart(string error)
+            {
+                TempData["QuickStartError"] = error;
+                TempData["QuickStartName"] = model.DisplayName;
+                TempData["QuickStartYear"] = model.BirthYear?.ToString();
+
+                return RedirectToAction("Index", "Home");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return BackToQuickStart(ModelState.Values
+                    .SelectMany(state => state.Errors)
+                    .Select(error => error.ErrorMessage)
+                    .FirstOrDefault(message => !string.IsNullOrWhiteSpace(message))
+                    ?? "Please check the details you entered.");
+            }
+
+            // StringLength sees the raw value, so a name of only spaces still
+            // has to be caught after trimming.
             var name = (model.DisplayName ?? string.Empty).Trim();
 
             if (name.Length < 2)
-            {
-                TempData["QuickStartError"] = "Enter a name with at least 2 characters.";
-                return RedirectToAction("Index", "Home");
-            }
+                return BackToQuickStart("Enter a name with at least 2 characters.");
 
             if (name.Length > 20)
                 name = name[..20];
@@ -138,6 +165,7 @@ namespace ChagolTalk.Controllers
             {
                 UserName = "guest_" + Guid.NewGuid().ToString("N")[..12],
                 DisplayName = name,
+                DateOfBirth = BirthDate.FromYear(model.BirthYear!.Value),
                 IsGuest = true,
                 AvatarSeed = Guid.NewGuid().ToString("N")[..8],
                 PreferredMode = ChagolTalk.Models.Enums.ChatMode.Voice,
@@ -148,10 +176,7 @@ namespace ChagolTalk.Controllers
             var result = await _userManager.CreateAsync(user);
 
             if (!result.Succeeded)
-            {
-                TempData["QuickStartError"] = "Could not start a session. Please try again.";
-                return RedirectToAction("Index", "Home");
-            }
+                return BackToQuickStart("Could not start a session. Please try again.");
 
             await _signInManager.SignInAsync(user, isPersistent: false);
 
@@ -188,17 +213,9 @@ namespace ChagolTalk.Controllers
         [Authorize]
         public async Task<IActionResult> EditProfile(EditProfileViewModel model)
         {
-            if (model.DateOfBirth.HasValue)
-            {
-                var age = DateTime.UtcNow.Year - model.DateOfBirth.Value.Year;
-                if (model.DateOfBirth.Value.Date > DateTime.UtcNow.AddYears(-age)) age--;
-
-                if (age < 13)
-                {
-                    ModelState.AddModelError(nameof(model.DateOfBirth), "You must be at least 13 years old to use ChagolTalk.");
-                }
-            }
-
+            // The age rule is a [MinimumAge] attribute on the view model now,
+            // shared with registration and the guest quick start, so ModelState
+            // already carries the result by the time we get here.
             if (!ModelState.IsValid)
                 return View(model);
 
@@ -210,7 +227,7 @@ namespace ChagolTalk.Controllers
             user.DisplayName = string.IsNullOrWhiteSpace(model.DisplayName) ? user.DisplayName : model.DisplayName.Trim();
             user.Bio = model.Bio?.Trim();
             user.Country = model.Country?.Trim();
-            user.DateOfBirth = model.DateOfBirth;
+            user.DateOfBirth = BirthDate.Normalise(model.DateOfBirth);
             user.Language = string.IsNullOrWhiteSpace(model.Language) ? null : model.Language.Trim();
             user.PreferredMode = model.PreferredMode;
             user.UpdatedAt = DateTime.UtcNow;

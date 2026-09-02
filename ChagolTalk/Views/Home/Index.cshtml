@@ -4,6 +4,14 @@
     int estimatedWaitSeconds = ViewBag.EstimatedWaitSeconds ?? 15;
     int peopleTalking = ViewBag.PeopleTalking ?? 0;
     string? quickStartError = ViewBag.QuickStartError as string;
+
+    // Carried back from a failed submit so the modal reopens filled in.
+    string? quickStartName = ViewBag.QuickStartName as string;
+    string? quickStartYear = ViewBag.QuickStartYear as string;
+
+    // Latest year that clears the age floor -- the browser rejects anything
+    // later without a round trip to the server.
+    int latestBirthYear = DateTime.UtcNow.Year - AppSettings.MinimumAge;
     bool isAuthenticated = User.Identity?.IsAuthenticated == true;
 }
 
@@ -117,8 +125,24 @@
                        id="quickStartName"
                        class="form-control mb-3"
                        placeholder="Your name"
-                       maxlength="20"
+                       aria-label="Your name"
                        autocomplete="off"
+                       maxlength="20"
+                       value="@quickStartName"
+                       required />
+
+                <input type="number"
+                       name="BirthYear"
+                       id="quickStartYear"
+                       class="form-control mb-3"
+                       placeholder="Year you were born"
+                       aria-label="Year you were born"
+                       inputmode="numeric"
+                       autocomplete="off"
+                       data-min-age="@AppSettings.MinimumAge"
+                       min="1900"
+                       max="@latestBirthYear"
+                       value="@quickStartYear"
                        required />
 
                 <p id="quickStartError" class="quick-start-error" style="display:@(string.IsNullOrEmpty(quickStartError) ? "none" : "block");">

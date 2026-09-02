@@ -1,4 +1,5 @@
 using ChagolTalk.Data;
+using ChagolTalk.Helpers;
 using ChagolTalk.Hubs;
 using ChagolTalk.Interfaces;
 using ChagolTalk.Models.Identity;
@@ -45,6 +46,7 @@ builder.Services
         options.User.RequireUniqueEmail = false;
     })
     .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddClaimsPrincipalFactory<ApplicationUserClaimsPrincipalFactory>()
     .AddDefaultTokenProviders();
 
 builder.Services.ConfigureApplicationCookie(options =>

@@ -1,2 +1,6 @@
-﻿<script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+﻿@* jQuery lives here rather than in the layout: these validation plugins are
+   the only thing in the project that uses it, and only three pages include
+   this partial. It must stay above them -- they attach to jQuery on load. *@
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
 <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>

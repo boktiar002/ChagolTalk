@@ -9,14 +9,126 @@
     --accent-gradient: linear-gradient(135deg, #5b8def 0%, #8b5cf6 100%);
     --success: #22c55e;
     --danger: #ef4444;
+    --white: #ffffff;
+    /* Text ramp, lightest to dimmest. --text-muted was added when four
+       separate greys turned out to be the same colour typed four times:
+       #858c9b, #8e96a8, #7f8797 and #777f90 are indistinguishable on screen. */
     --text: #f8fafc;
     --text2: #9aa3b5;
+    --text-muted: #858c9b;
     --text3: #6b7385;
     --shadow: 0 20px 60px rgba(0,0,0,.45);
     --shadow-glow: 0 10px 36px rgba(91,141,239,.25);
-    --radius-lg: 24px;
+    /* Corner radii. Values not on this scale (18, 20, 26, 28px) are still
+       literal -- pulling them onto a step would move corners by 2-4px, which
+       is a design decision rather than a cleanup. */
+    --radius-xs: 10px;
+    --radius-sm: 12px;
     --radius-md: 16px;
+    --radius-lg: 24px;
+    --radius-pill: 999px;
+    /* ---------- Type scale ----------
+       Twelve steps, replacing thirty ad-hoc pixel values. The steps sit on
+       the sizes this design already used most (13, 14, 12, 16, 11, 21), so
+       almost nothing moved when they were adopted -- the point was to stop
+       the drift, not to restyle. Neighbouring values half a pixel apart are
+       not a design decision anyone can see; they are just what happens when
+       a number is typed rather than chosen.
+
+       --fs-md is 16px and inputs must stay on it: anything smaller makes
+       iOS Safari zoom the page when a field is focused. */
+    --fs-2xs: 11px;
+    --fs-xs: 12px;
+    --fs-sm: 13px;
+    --fs-base: 14px;
+    --fs-md: 16px;
+    --fs-lg: 18px;
+    --fs-xl: 21px;
+    --fs-2xl: 24px;
+    --fs-3xl: 28px;
+    --fs-4xl: 34px;
+    --fs-5xl: 42px;
+    --fs-6xl: 60px;
+    /* ---------- Device safe areas ----------
+       Physical intrusions into the viewport: the notch or dynamic island at
+       the top, the home indicator at the bottom, and the rounded corners that
+       eat the sides in landscape. They resolve to 0px on any device that has
+       none, so they can be added unconditionally.
+
+       These only carry real values when the viewport meta tag says
+       viewport-fit=cover -- see _Layout.cshtml. Read them through these
+       variables rather than calling env() at each site, so a harness can
+       override them and prove the layout actually responds. */
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
 }
+
+/* ==========================================
+   ACCESSIBILITY BASELINE
+   ========================================== */
+
+/* Keyboard focus was invisible everywhere: nothing in this project styled
+   :focus, and the -webkit-tap-highlight reset below removes the only other
+   cue. :focus-visible rather than :focus so a mouse click does not leave a
+   ring behind, while Tab always shows one. */
+:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* Some people get motion sick from movement, and the OS switch is how they
+   say so. Everything here is decorative -- entrance fades, the pulsing live
+   dot, the searching orb -- so it can all be reduced to effectively nothing
+   without losing meaning. Kept as a near-zero duration rather than `none` so
+   animation end events still fire and any script waiting on one is not
+   stranded. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* A phone held sideways during a call is a normal thing to do, and there is
+   very little height to work with. Trim the vertical rhythm so the content
+   still fits rather than forcing a scroll. */
+@media (max-height: 520px) and (orientation: landscape) {
+    .ct-main {
+        padding: 12px 0 20px;
+    }
+
+    .auth-container {
+        padding: 12px 0;
+    }
+
+    .brand-icon,
+    .dashboard-avatar,
+    .lobby-orb {
+        display: none;
+    }
+}
+
+/* ==========================================
+   BREAKPOINTS -- one set, used everywhere.
+
+     max-width: 640px    phones and small foldables (the mobile layout)
+     max-width: 480px    small phones (tightening only, on top of 640)
+
+   Anything wider is the desktop layout. Custom properties cannot be used
+   inside a media query, so this is a written convention rather than a
+   variable -- but it is the convention.
+
+   There used to be three breakpoints in play (480px, 600px and 640px), so a
+   device between 600 and 640 got the phone chat layout together with the
+   desktop hero. If a new breakpoint is genuinely needed, add it here first.
+   ========================================== */
 
 * {
     margin: 0;
@@ -51,6 +163,11 @@ body {
     color: var(--text);
     font-family: 'Inter',sans-serif;
     min-height: 100vh;
+    /* dvh tracks the viewport as mobile browser chrome slides away; 100vh is
+       the tallest it ever gets, so on a phone it pushes content down behind
+       the address bar. The vh line stays above as the fallback for browsers
+       that do not know dvh. */
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
 }
@@ -65,7 +182,7 @@ input[type="submit"] {
 
 ::selection {
     background: rgba(91,141,239,.35);
-    color: #fff;
+    color: var(--white);
 }
 
 .ct-main {
@@ -88,6 +205,11 @@ input[type="submit"] {
     top: 0;
     z-index: 999;
     padding: 14px 0;
+    /* Sticks to the very top of a full-bleed viewport, so it has to clear the
+       notch itself -- and the rounded corners when the phone is on its side. */
+    padding-top: calc(14px + var(--safe-top));
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
 }
 
 .ct-navbar .container {
@@ -99,7 +221,7 @@ input[type="submit"] {
 }
 
 .navbar-brand {
-    font-size: 23px;
+    font-size: var(--fs-2xl);
     display: inline-flex;
     align-items: center;
     gap: 9px;
@@ -110,8 +232,8 @@ input[type="submit"] {
     place-items: center;
     width: 40px;
     height: 40px;
-    font-size: 21px;
-    border-radius: 12px;
+    font-size: var(--fs-xl);
+    border-radius: var(--radius-sm);
     background: linear-gradient(160deg, rgba(255,255,255,.09), rgba(255,255,255,.01)), var(--surface2);
     border: 1px solid var(--border);
     box-shadow: 0 4px 16px rgba(91,141,239,.18);
@@ -146,7 +268,7 @@ input[type="submit"] {
     border: 0;
     background: transparent;
     color: var(--text2);
-    font-size: 15px;
+    font-size: var(--fs-md);
     cursor: pointer;
     padding: 8px 4px;
     transition: color .2s ease;
@@ -165,7 +287,7 @@ input[type="submit"] {
     align-items: center;
     gap: 9px;
     padding: 8px 16px 8px 9px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.01)), var(--surface2);
     border: 1px solid var(--border);
     color: var(--text);
@@ -188,12 +310,12 @@ input[type="submit"] {
     display: grid;
     place-items: center;
     background: var(--accent-gradient);
-    font-size: 13px;
+    font-size: var(--fs-sm);
     flex-shrink: 0;
 }
 
 .guest-chip-name {
-    font-size: 14.5px;
+    font-size: var(--fs-base);
     font-weight: 600;
     max-width: 110px;
     overflow: hidden;
@@ -202,13 +324,13 @@ input[type="submit"] {
 }
 
 .guest-chip-tag {
-    font-size: 9.5px;
+    font-size: var(--fs-2xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: .5px;
     color: var(--primary);
     background: rgba(91,141,239,.14);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     padding: 3px 7px;
 }
 
@@ -228,23 +350,30 @@ input[type="submit"] {
 
 @media (max-width: 480px) {
     .ct-navbar {
+        /* Carries the notch inset through, exactly as the base rule does. A
+           plain "padding: 11px 0" here overrides the shorthand and silently
+           drops it -- which put the brand and the account chip underneath the
+           dynamic island on every small iPhone. */
         padding: 11px 0;
+        padding-top: calc(11px + var(--safe-top));
+        padding-left: var(--safe-left);
+        padding-right: var(--safe-right);
     }
 
     .navbar-brand {
-        font-size: 20px;
+        font-size: var(--fs-xl);
     }
 
     .brand-goat {
         width: 34px;
         height: 34px;
-        font-size: 18px;
-        border-radius: 10px;
+        font-size: var(--fs-lg);
+        border-radius: var(--radius-xs);
     }
 
     .ct-navbar .btn {
         padding: 9px 14px;
-        font-size: 13px;
+        font-size: var(--fs-sm);
     }
 
     .guest-chip {
@@ -255,7 +384,7 @@ input[type="submit"] {
 
     .guest-chip-name {
         max-width: 64px;
-        font-size: 13px;
+        font-size: var(--fs-sm);
     }
 
     .guest-chip-tag {
@@ -263,7 +392,7 @@ input[type="submit"] {
     }
 
     .nav-text-link {
-        font-size: 13.5px;
+        font-size: var(--fs-sm);
     }
 }
 
@@ -290,7 +419,7 @@ input[type="submit"] {
 .btn-primary {
     background: var(--accent-gradient);
     border: none;
-    color: #fff !important;
+    color: var(--white) !important;
     box-shadow: 0 6px 22px rgba(91,141,239,.28);
 }
 
@@ -321,13 +450,13 @@ input[type="submit"] {
     .btn-danger:hover {
         background: rgba(239,68,68,.22);
         border-color: rgba(239,68,68,.5);
-        color: #fff !important;
+        color: var(--white) !important;
     }
 
 .btn-lg {
     padding: 15px 30px;
-    font-size: 15.5px;
-    border-radius: 15px;
+    font-size: var(--fs-md);
+    border-radius: var(--radius-md);
 }
 
 /* ==========================================
@@ -341,28 +470,36 @@ input[type="submit"] {
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow);
+    /* Bootstrap's .card sets its own text colour, and that colour is the
+       light-theme one -- near-black. On these dark surfaces anything inside a
+       card that does not set its own colour comes out almost invisible: the
+       dashboard's "Welcome back" heading was rendering at 1.18:1 against the
+       card behind it. .auth-card happened to declare a colour and so escaped
+       it; nothing else did. Setting it here fixes every card at once,
+       including ones not written yet. */
+    color: var(--text);
 }
 
 .form-control {
     background-color: #0d1017;
     border: 1px solid var(--border);
-    color: #ffffff;
+    color: var(--white);
     /* iOS honours -webkit-text-fill-color over `color` on inputs, so both
        are set -- otherwise typed text can render invisible there. */
-    -webkit-text-fill-color: #ffffff;
+    -webkit-text-fill-color: var(--white);
     -webkit-appearance: none;
     appearance: none;
     border-radius: var(--radius-md);
     padding: 13px 15px;
     /* 16px keeps iOS Safari from zooming the page in on focus. */
-    font-size: 16px;
+    font-size: var(--fs-md);
     transition: border-color .2s ease, box-shadow .2s ease;
 }
 
     .form-control:focus {
         background-color: #0d1017;
-        color: #ffffff;
-        -webkit-text-fill-color: #ffffff;
+        color: var(--white);
+        -webkit-text-fill-color: var(--white);
         border-color: var(--primary);
         box-shadow: 0 0 0 .18rem rgba(91,141,239,.22);
     }
@@ -378,9 +515,9 @@ input[type="submit"] {
     .form-control:-webkit-autofill,
     .form-control:-webkit-autofill:hover,
     .form-control:-webkit-autofill:focus {
-        -webkit-text-fill-color: #ffffff;
+        -webkit-text-fill-color: var(--white);
         -webkit-box-shadow: 0 0 0 1000px #0d1017 inset;
-        caret-color: #ffffff;
+        caret-color: var(--white);
     }
 
 /* ==========================================
@@ -393,7 +530,7 @@ input[type="submit"] {
     text-align: center;
     color: var(--text2);
     margin-top: auto;
-    font-size: 13.5px;
+    font-size: var(--fs-sm);
 }
 
     .ct-footer a {
@@ -431,12 +568,12 @@ a {
     gap: 8px;
     padding: 8px 18px;
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     margin-bottom: 32px;
     background: rgba(255,255,255,.03);
     backdrop-filter: blur(8px);
     color: var(--text2);
-    font-size: 13.5px;
+    font-size: var(--fs-sm);
     animation: badgeIn .5s ease;
 }
 
@@ -446,7 +583,7 @@ a {
 }
 
 .hero-title {
-    font-size: 60px;
+    font-size: var(--fs-6xl);
     font-weight: 800;
     line-height: 1.15;
     letter-spacing: -1.3px;
@@ -471,7 +608,7 @@ a {
 .hero-description {
     max-width: 720px;
     margin: auto;
-    font-size: 19px;
+    font-size: var(--fs-lg);
     color: var(--text2);
     line-height: 1.75;
     margin-bottom: 40px;
@@ -485,7 +622,7 @@ a {
     margin: 0 auto 38px;
     padding: 6px;
     border: 1px solid var(--border);
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: rgba(255,255,255,.02);
 }
 
@@ -494,7 +631,7 @@ a {
     align-items: center;
     gap: 6px;
     padding: 7px 14px;
-    font-size: 13px;
+    font-size: var(--fs-sm);
     color: var(--text2);
 }
 
@@ -523,9 +660,9 @@ a {
     background: rgba(239,68,68,.1);
     border: 1px solid rgba(239,68,68,.3);
     color: #ffb4b4;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     padding: 9px 13px;
-    font-size: 12.5px;
+    font-size: var(--fs-xs);
     margin-bottom: 14px;
 }
 
@@ -557,26 +694,26 @@ a {
 .step-number {
     width: 36px;
     height: 36px;
-    border-radius: 11px;
+    border-radius: var(--radius-xs);
     display: grid;
     place-items: center;
     background: var(--accent-gradient);
     color: white;
     font-weight: 700;
-    font-size: 14px;
+    font-size: var(--fs-base);
     margin-bottom: 18px;
     box-shadow: 0 6px 18px rgba(91,141,239,.3);
 }
 
 .step-card h3 {
     margin-bottom: 10px;
-    font-size: 17px;
+    font-size: var(--fs-lg);
 }
 
 .step-card p {
     color: var(--text2);
     line-height: 1.7;
-    font-size: 14px;
+    font-size: var(--fs-base);
 }
 
 /* ==========================================
@@ -610,24 +747,47 @@ a {
     height: 54px;
     display: grid;
     place-items: center;
-    border-radius: 15px;
+    border-radius: var(--radius-md);
     background: rgba(91,141,239,.12);
-    font-size: 24px;
+    font-size: var(--fs-2xl);
     margin-bottom: 22px;
 }
 
 .feature-card h3 {
     margin-bottom: 12px;
-    font-size: 17px;
+    font-size: var(--fs-lg);
 }
 
 .feature-card p {
     color: var(--text2);
     line-height: 1.8;
-    font-size: 14.5px;
+    font-size: var(--fs-base);
 }
 
 @media (max-width: 640px) {
+    /* Thumb-sized targets. These sit at 36-40px on a phone, which is under the
+       ~44px a finger reliably hits; the height is raised without changing how
+       they look by letting the padding do the work. Inline links inside a
+       sentence -- the footer, "Already have an account? Login" -- are left
+       alone: padding them out would break the line they sit in. */
+    .ct-navbar .btn,
+    .guest-chip {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    /* Deliberately NOT inline-flex. This link is mixed content --
+       "Have an account? <strong>Login</strong>" -- and flex turns the text
+       node and the <strong> into separate flex items, which discards the
+       whitespace between them and renders "Have an account?Login". Padding
+       reaches the same target height without touching the text flow. */
+    .nav-text-link {
+        display: inline-block;
+        padding-top: 13px;
+        padding-bottom: 13px;
+    }
+
     /* On a phone the "Start Talking" button was landing below the fold,
        so people had to scroll to find the one thing the page is for.
        The hero becomes an explicit column: everything above the button is
@@ -646,7 +806,7 @@ a {
 
     .hero-badge {
         order: 1;
-        font-size: 12px;
+        font-size: var(--fs-xs);
         padding: 6px 13px;
         margin-bottom: 14px;
         line-height: 1.45;
@@ -654,7 +814,7 @@ a {
 
     .hero-title {
         order: 2;
-        font-size: 31px;
+        font-size: var(--fs-3xl);
         letter-spacing: -.8px;
         line-height: 1.2;
         margin-bottom: 12px;
@@ -666,7 +826,7 @@ a {
 
     .hero-description {
         order: 3;
-        font-size: 14.5px;
+        font-size: var(--fs-base);
         line-height: 1.6;
         margin-bottom: 20px;
     }
@@ -682,7 +842,7 @@ a {
     .hero-buttons .btn-lg {
         width: 100%;
         padding: 16px 22px;
-        font-size: 16px;
+        font-size: var(--fs-md);
     }
 
     .live-stats-row {
@@ -692,7 +852,7 @@ a {
 
     .live-stats-row span {
         padding: 6px 10px;
-        font-size: 12px;
+        font-size: var(--fs-xs);
     }
 
     .how-it-works,

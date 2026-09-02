@@ -1,19 +1,35 @@
+@using ChagolTalk.Helpers
 @using ChagolTalk.Models.Identity
 @using Microsoft.AspNetCore.Identity
 @inject UserManager<ApplicationUser> UserManager
 @{
-    ApplicationUser? currentUser = null;
+    var signedIn = User.Identity?.IsAuthenticated == true;
 
-    if (User.Identity?.IsAuthenticated == true)
+    // Read from the auth cookie rather than the database. Drawing this navbar
+    // used to cost a round trip to Postgres on every page view.
+    var displayName = User.DisplayNameOrNull();
+    var isGuest = User.IsGuestOrNull() ?? false;
+
+    // Cookies issued before those claims existed do not carry them, so those
+    // sessions -- and only those -- still pay for one lookup until the cookie
+    // expires and is reissued with the claims.
+    if (signedIn && displayName is null)
     {
-        currentUser = await UserManager.GetUserAsync(User);
+        var currentUser = await UserManager.GetUserAsync(User);
+        displayName = currentUser?.DisplayName ?? currentUser?.UserName;
+        isGuest = currentUser?.IsGuest ?? false;
     }
 }
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    @* viewport-fit=cover lets the page paint into the notch and home-indicator
+       areas, and is what makes env(safe-area-inset-*) report real values.
+       Without it those insets are always 0 and every layout that reads them
+       silently does nothing -- which was the case here. The --safe-* variables
+       in site.css depend on this. *@
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="color-scheme" content="dark" />
     <title>@ViewData["Title"] - @AppSettings.AppName</title>
 
@@ -44,11 +60,11 @@
 
                 <div class="ms-auto d-flex align-items-center">
 
-                    @if (currentUser != null && currentUser.IsGuest)
+                    @if (signedIn && isGuest)
                     {
                         <a class="guest-chip" asp-controller="Dashboard" asp-action="Index" title="Your session">
                             <span class="guest-chip-avatar">👤</span>
-                            <span class="guest-chip-name">@currentUser.DisplayName</span>
+                            <span class="guest-chip-name">@displayName</span>
                             <span class="guest-chip-tag">Guest</span>
                         </a>
 
@@ -67,7 +83,7 @@
 
                         </form>
                     }
-                    else if (currentUser != null)
+                    else if (signedIn)
                     {
                         <a class="btn btn-nav me-2"
                            asp-controller="Dashboard"
@@ -125,11 +141,17 @@
 
     </footer>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @* Three scripts used to load on every page here and none of them earned it.
 
-    <script src="~/js/site.js"></script>
+       Bootstrap's JS is not referenced anywhere -- no data-bs-* attributes, no
+       calls into its API; the modals in this app are hand-written. site.js has
+       never contained anything but the template's placeholder comment. jQuery
+       is only needed by the three pages that render _ValidationScriptsPartial,
+       so it now loads from there, immediately before the validation plugins
+       that depend on it.
 
+       That is roughly 170KB of JavaScript removed from the home page, the
+       lobby and the chat room -- the pages that matter most on a slow phone. *@
     @await RenderSectionAsync("Scripts", required: false)
 
 </body>

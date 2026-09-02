@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using ChagolTalk.Configurations;
+using ChagolTalk.Helpers;
 using ChagolTalk.Models.Enums;
 
 namespace ChagolTalk.ViewModels.Account
@@ -16,6 +18,7 @@ namespace ChagolTalk.ViewModels.Account
         public string? Country { get; set; }
 
         [DataType(DataType.Date)]
+        [MinimumAge(AppSettings.MinimumAge)]
         [Display(Name = "Date of birth")]
         public DateTime? DateOfBirth { get; set; }
 

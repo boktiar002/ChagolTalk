@@ -1,5 +1,6 @@
 .auth-container {
     min-height: calc(100vh - 90px);
+    min-height: calc(100dvh - 90px);
     display: flex;
     justify-content: center;
     align-items: flex-start;
@@ -16,7 +17,7 @@
 }
 
 .auth-title {
-    font-size: 40px;
+    font-size: var(--fs-5xl);
     font-weight: 700;
     margin-bottom: 10px;
     text-align: center;
@@ -32,11 +33,11 @@
 .auth-card .btn {
     width: 100%;
     padding: 14px;
-    font-size: 17px;
+    font-size: var(--fs-lg);
 }
 
 .brand-icon {
-    font-size: 60px;
+    font-size: var(--fs-6xl);
     margin-bottom: 20px;
     width: 100px;
     height: 100px;
@@ -56,14 +57,20 @@
 
 .password-toggle {
     position: absolute;
-    right: 15px;
+    right: 8px;
     top: 50%;
     transform: translateY(-50%);
     background: none;
     border: none;
-    color: #9CA3AF;
-    font-size: 22px;
+    color: var(--text2);
+    font-size: var(--fs-xl);
     cursor: pointer;
+    /* Was a 32px tap target. A thumb needs about 44px; the button is padded
+       out to reach it rather than made visually bigger. */
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
 }
 
     .password-toggle:hover {
@@ -113,7 +120,7 @@ textarea.form-control {
 .btn-sm {
     width: auto;
     padding: 8px 16px !important;
-    font-size: 13px !important;
+    font-size: var(--fs-sm) !important;
 }
 
 .alert-saved {
@@ -123,7 +130,56 @@ textarea.form-control {
     border-radius: 14px;
     padding: 12px 16px;
     text-align: center;
-    font-size: 14px;
+    font-size: var(--fs-base);
+}
+
+/* ==========================================
+   PHONE
+   This file had no breakpoint at all, so a phone got the desktop card: 40px
+   of padding inside 20px of container padding inside the page gutter, which
+   left roughly 240px of usable width on a 393px screen. Combined with the
+   100px brand tile and a 42px title, the first input sat most of a screen
+   down the page.
+   ========================================== */
+@media (max-width: 640px) {
+
+    .auth-container {
+        /* The page gutter already provides the side margin. */
+        padding: 20px 0;
+        align-items: flex-start;
+    }
+
+    .auth-card {
+        padding: 26px 20px;
+        border-radius: var(--radius-md);
+    }
+
+    .brand-icon {
+        width: 68px;
+        height: 68px;
+        font-size: var(--fs-4xl);
+        border-radius: 20px;
+        margin-bottom: 14px;
+    }
+
+    .auth-title {
+        font-size: var(--fs-3xl);
+        margin-bottom: 6px;
+    }
+
+    .auth-subtitle {
+        font-size: var(--fs-sm);
+        margin-bottom: 22px;
+    }
+
+    .auth-card .btn {
+        padding: 13px;
+        font-size: var(--fs-md);
+    }
+
+    .section-title {
+        margin: 20px 0 16px;
+    }
 }
 
 @keyframes fadeUp {
