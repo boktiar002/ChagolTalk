@@ -29,7 +29,6 @@ namespace ChagolTalk.Controllers
                 .CountAsync(c => c.Status == ConversationStatus.Active) * 2;
             ViewBag.QuickStartError = TempData["QuickStartError"];
             ViewBag.QuickStartName = TempData["QuickStartName"];
-            ViewBag.QuickStartYear = TempData["QuickStartYear"];
 
             return View();
         }

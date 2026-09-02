@@ -43,7 +43,6 @@ namespace ChagolTalk.Controllers
             {
                 UserName = model.Username,
                 DisplayName = model.Username,
-                DateOfBirth = BirthDate.Normalise(model.DateOfBirth),
                 AvatarSeed = Guid.NewGuid().ToString("N")[..8],
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -137,7 +136,6 @@ namespace ChagolTalk.Controllers
             {
                 TempData["QuickStartError"] = error;
                 TempData["QuickStartName"] = model.DisplayName;
-                TempData["QuickStartYear"] = model.BirthYear?.ToString();
 
                 return RedirectToAction("Index", "Home");
             }
@@ -165,7 +163,6 @@ namespace ChagolTalk.Controllers
             {
                 UserName = "guest_" + Guid.NewGuid().ToString("N")[..12],
                 DisplayName = name,
-                DateOfBirth = BirthDate.FromYear(model.BirthYear!.Value),
                 IsGuest = true,
                 AvatarSeed = Guid.NewGuid().ToString("N")[..8],
                 PreferredMode = ChagolTalk.Models.Enums.ChatMode.Voice,
@@ -213,9 +210,8 @@ namespace ChagolTalk.Controllers
         [Authorize]
         public async Task<IActionResult> EditProfile(EditProfileViewModel model)
         {
-            // The age rule is a [MinimumAge] attribute on the view model now,
-            // shared with registration and the guest quick start, so ModelState
-            // already carries the result by the time we get here.
+            // Date of birth is optional here and asked nowhere else. When one is
+            // given, [MinimumAge] on the view model has already checked it.
             if (!ModelState.IsValid)
                 return View(model);
 

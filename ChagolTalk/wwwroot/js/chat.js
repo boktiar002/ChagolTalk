@@ -79,6 +79,11 @@
     const searchingSound = new Audio("/sounds/magiaz-goat-411846.mp3");
     searchingSound.loop = true;
 
+    // Matches the lobby: the file is mastered at speech level, so it is turned
+    // well down for a cue that loops while waiting. See lobby.js for the
+    // measurements behind the number.
+    searchingSound.volume = 0.25;
+
     function playSearchingSound() {
         searchingSound.currentTime = 0;
         searchingSound.play().catch((error) => console.error("Searching sound error:", error));

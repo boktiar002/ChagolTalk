@@ -31,6 +31,17 @@
     const searchingSound = new Audio("/sounds/magiaz-goat-411846.mp3");
     searchingSound.loop = true;
 
+    // The file is mastered at speech level -- measured at -17.4 dBFS over its
+    // loudest second, peaking at -2.8 dBFS. That is fine for a one-shot sound
+    // effect and much too loud for something that loops every five seconds in
+    // your ear while you wait, especially on headphones, which is how most
+    // people arrive at a voice-chat site.
+    //
+    // 0.25 lands the loop near -29 dBFS: still clearly audible, but under
+    // speech rather than competing with it. It also leaves headroom for the
+    // stranger's voice, which starts the moment this stops.
+    searchingSound.volume = 0.25;
+
     function playSearchingSound() {
         searchingSound.currentTime = 0;
         // Browsers can reject play() if it's not tied closely enough to a

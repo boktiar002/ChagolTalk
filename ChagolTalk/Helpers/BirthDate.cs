@@ -8,19 +8,11 @@ namespace ChagolTalk.Helpers
     /// it throws rather than guessing an offset. Model binding an
     /// &lt;input type="date"&gt; produces Kind=Unspecified, so every value
     /// arriving from a form has to be stamped before it is stored. Doing that
-    /// in one place keeps the three entry points (registration, guest quick
-    /// start, profile edit) from each having to remember.
+    /// Only the profile page collects a date now -- signing up and the guest
+    /// quick start ask for nothing -- but it still has to be stamped there.
     /// </summary>
     public static class BirthDate
     {
-        /// <summary>
-        /// A year of birth as a stored date. 1 January by convention -- the
-        /// oldest that year can be, matching how <see cref="MinimumAgeAttribute"/>
-        /// reads a bare year when it validates one.
-        /// </summary>
-        public static DateTime FromYear(int year) =>
-            new(year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
         /// <summary>
         /// A date from a form, stamped as UTC. The time of day is dropped: a
         /// birth date has no meaningful clock time, and keeping one would make
